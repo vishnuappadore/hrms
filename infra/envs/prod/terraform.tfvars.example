@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) and fill in before `terraform apply`.
+
+github_repo = "REPLACE_ME/keystone-hr" # e.g. "acme-corp/keystone-hr" — must match this repo's actual GitHub remote once you push it there
+
+# Leave both of these empty until you have a real domain:
+# domain_name     = "hr.example.com"
+# route53_zone_id = "Z0123456789ABCDEFGHIJ"

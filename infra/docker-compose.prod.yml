@@ -1,0 +1,75 @@
+# Production compose file for the single-EC2 "minimum configuration" tier. Deployed by
+# infra/deploy.sh — not used for local dev (see the root docker-compose.yml for that).
+#
+# Only `caddy` publishes ports. `api`/`web`/`postgres`/`redis` talk to each other over the
+# default compose network by service name; nothing else is reachable from outside the box.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: keystonehr
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: keystonehr
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keystonehr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - /data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ${ECR_REGISTRY}/${ECR_API_REPO}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ${ECR_REGISTRY}/${ECR_API_REPO}:${IMAGE_TAG:-latest}
+    command: ["node", "dist/worker.js"]
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    image: ${ECR_REGISTRY}/${ECR_WEB_REPO}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /data/caddy/data:/data
+      - /data/caddy/config:/config
+    depends_on:
+      - web

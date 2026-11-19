@@ -16,6 +16,8 @@ apps/api/prisma/*.db
 infra/**/.terraform/
 infra/**/*.tfstate*
 infra/**/.terraform.lock.hcl
+infra/**/terraform.tfvars
+!infra/**/terraform.tfvars.example
 
 # OS / editor
 .DS_Store

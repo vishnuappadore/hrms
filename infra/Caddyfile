@@ -1,0 +1,6 @@
+# Pre-domain state (DOMAIN unset): plain HTTP on :80, no TLS yet. Once a real domain is
+# ready, set the `domain_name` Terraform variable and re-deploy — this file switches to the
+# domain automatically and Caddy issues a Let's Encrypt cert for it on its own.
+{$DOMAIN::80} {
+	reverse_proxy web:3000
+}
