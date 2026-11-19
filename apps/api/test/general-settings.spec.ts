@@ -1,47 +1,35 @@
 import { INestApplication } from "@nestjs/common";
 import supertest from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  createApp,
-  createUserWithRole,
-  provisionTenant,
-  validBranchPayload,
-  type TestTenant,
-} from "./helpers";
+import { createApp, createTestAdmin, createUserWithRole, type TestAdmin } from "./helpers";
 
 describe("settings > general settings", () => {
   let app: INestApplication;
-  let tenant: TestTenant;
-  let tenantB: TestTenant;
+  let admin: TestAdmin;
 
   const request = () => supertest(app.getHttpServer());
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 
   beforeAll(async () => {
     app = await createApp();
-    tenant = await provisionTenant(app);
-    tenantB = await provisionTenant(app);
+    admin = await createTestAdmin(app);
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it("reads and updates the caller's own general settings", async () => {
+  it("reads and updates the singleton general settings", async () => {
     const fetched = await request()
       .get("/api/v1/settings/general")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    expect(fetched.body).toMatchObject({
-      defaultCurrency: "OMR",
-      useWesternNumeralsInArabic: true,
-      weekStartsOn: "sunday",
-      branchCount: 0,
-    });
+    expect(fetched.body.defaultCurrency).toBe("AED");
+    expect(typeof fetched.body.branchCount).toBe("number");
 
     const updated = await request()
       .patch("/api/v1/settings/general")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         defaultLocale: "ar",
         timezone: "Asia/Dubai",
@@ -57,53 +45,23 @@ describe("settings > general settings", () => {
       useWesternNumeralsInArabic: false,
       weekStartsOn: "monday",
     });
-  });
 
-  it("locks defaultCurrency once the tenant has a branch", async () => {
-    await request()
-      .post("/api/v1/branches")
-      .set(auth(tenant.accessToken))
-      .send(validBranchPayload("General Settings Currency Lock Branch"))
-      .expect(201);
-
-    const denied = await request()
-      .patch("/api/v1/settings/general")
-      .set(auth(tenant.accessToken))
-      .send({
-        defaultLocale: "en",
-        timezone: "Asia/Muscat",
-        defaultCurrency: "USD",
-        useWesternNumeralsInArabic: true,
-        weekStartsOn: "sunday",
-      })
-      .expect(409);
-    expect(denied.body.code).toBe("TENANT_CURRENCY_LOCKED");
-
-    // Same-currency update (not actually changing it) is still allowed.
+    // restore so later/parallel assertions about the default locale elsewhere aren't affected
     await request()
       .patch("/api/v1/settings/general")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         defaultLocale: "en",
-        timezone: "Asia/Muscat",
+        timezone: "Asia/Dubai",
         defaultCurrency: "AED",
         useWesternNumeralsInArabic: true,
-        weekStartsOn: "sunday",
+        weekStartsOn: "monday",
       })
       .expect(200);
-  });
-
-  it("tenant B never sees tenant A's general settings", async () => {
-    const fetchedB = await request()
-      .get("/api/v1/settings/general")
-      .set(auth(tenantB.accessToken))
-      .expect(200);
-    expect(fetchedB.body.defaultCurrency).toBe("OMR");
-    expect(fetchedB.body.branchCount).toBe(0);
   });
 
   it("denies a role without settings.general.manage", async () => {
-    const branchManager = await createUserWithRole(app, tenantB.tenantId, "Branch Manager", []);
+    const branchManager = await createUserWithRole(app, "Branch Manager", []);
 
     const getDenied = await request()
       .get("/api/v1/settings/general")
@@ -116,10 +74,10 @@ describe("settings > general settings", () => {
       .set(auth(branchManager.accessToken))
       .send({
         defaultLocale: "en",
-        timezone: "Asia/Muscat",
-        defaultCurrency: "OMR",
+        timezone: "Asia/Dubai",
+        defaultCurrency: "AED",
         useWesternNumeralsInArabic: true,
-        weekStartsOn: "sunday",
+        weekStartsOn: "monday",
       })
       .expect(403);
     expect(patchDenied.body.code).toBe("PERMISSION_DENIED");

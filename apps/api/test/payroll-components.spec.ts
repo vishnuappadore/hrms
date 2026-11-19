@@ -2,20 +2,18 @@ import { INestApplication } from "@nestjs/common";
 import supertest from "supertest";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApp, createUserWithRole, provisionTenant, type TestTenant } from "./helpers";
+import { createApp, createTestAdmin, createUserWithRole, type TestAdmin } from "./helpers";
 
 describe("payroll components", () => {
   let app: INestApplication;
-  let tenant: TestTenant;
-  let tenantB: TestTenant;
+  let admin: TestAdmin;
 
   const request = () => supertest(app.getHttpServer());
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 
   beforeAll(async () => {
     app = await createApp();
-    tenant = await provisionTenant(app);
-    tenantB = await provisionTenant(app);
+    admin = await createTestAdmin(app);
   });
 
   afterAll(async () => {
@@ -26,7 +24,7 @@ describe("payroll components", () => {
     const nameEn = `Housing ${randomUUID().slice(0, 6)}`;
     const created = await request()
       .put("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         items: [
           { nameEn, nameAr: "سكن", basis: "fixed_amount", defaultAmountMinor: 50000 },
@@ -40,7 +38,7 @@ describe("payroll components", () => {
     // Second save: update the housing row, drop the transport row entirely.
     const resaved = await request()
       .put("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         items: [
           { id: housingId, nameEn, nameAr: "سكن", basis: "percentage_of_base", defaultRatePct: 10 },
@@ -53,7 +51,7 @@ describe("payroll components", () => {
 
     const list = await request()
       .get("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const names = list.body.map((c: { nameEn: string }) => c.nameEn);
     expect(names).toContain(nameEn);
@@ -64,38 +62,20 @@ describe("payroll components", () => {
     const nameEn = `Meal ${randomUUID().slice(0, 6)}`;
     await request()
       .put("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ items: [{ nameEn, nameAr: "وجبة", basis: "fixed_amount", defaultAmountMinor: 10000 }] })
       .expect(200);
 
     const dup = await request()
       .put("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ items: [{ nameEn, nameAr: "وجبة", basis: "fixed_amount", defaultAmountMinor: 5000 }] })
       .expect(409);
     expect(dup.body.code).toBe("NAME_EXISTS");
   });
 
-  it("tenant B never sees tenant A's payroll components", async () => {
-    await request()
-      .put("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenant.accessToken))
-      .send({
-        items: [
-          { nameEn: `PASI ${randomUUID().slice(0, 6)}`, nameAr: "التأمينات", basis: "percentage_of_base", defaultRatePct: 7 },
-        ],
-      })
-      .expect(200);
-
-    const listB = await request()
-      .get("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenantB.accessToken))
-      .expect(200);
-    expect(listB.body.filter((c: { nameEn: string }) => c.nameEn.startsWith("PASI"))).toHaveLength(0);
-  });
-
-  it("staff.view can list but settings.manage is required to save", async () => {
-    const branchManager = await createUserWithRole(app, tenant.tenantId, "Branch Manager", []);
+  it("employee.view can list but settings.manage is required to save", async () => {
+    const branchManager = await createUserWithRole(app, "Branch Manager", []);
 
     await request()
       .get("/api/v1/payroll-components?category=allowance")
@@ -110,11 +90,11 @@ describe("payroll components", () => {
     expect(denied.body.code).toBe("PERMISSION_DENIED");
   });
 
-  it("denies listing to roles without staff.view", async () => {
-    const receptionist = await createUserWithRole(app, tenant.tenantId, "Receptionist", []);
+  it("denies listing to roles without employee.view", async () => {
+    const employeeUser = await createUserWithRole(app, "Employee", []);
     const res = await request()
       .get("/api/v1/payroll-components?category=allowance")
-      .set(auth(receptionist.accessToken))
+      .set(auth(employeeUser.accessToken))
       .expect(403);
     expect(res.body.code).toBe("PERMISSION_DENIED");
   });

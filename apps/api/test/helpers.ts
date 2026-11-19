@@ -4,11 +4,9 @@ import * as argon2 from "argon2";
 import supertest from "supertest";
 import { randomUUID } from "node:crypto";
 import { AppModule } from "../src/app.module";
-import { AuthPrismaService } from "../src/database/auth-prisma.service";
-import { TenantsService } from "../src/modules/tenants/tenants.service";
+import { PrismaService } from "../src/database/prisma.service";
 
-export interface TestTenant {
-  tenantId: string;
+export interface TestAdmin {
   adminEmail: string;
   password: string;
   accessToken: string;
@@ -22,17 +20,30 @@ export async function createApp(): Promise<INestApplication> {
   return app;
 }
 
-/** Provision a fresh tenant with a unique slug and return a logged-in admin. */
-export async function provisionTenant(app: INestApplication): Promise<TestTenant> {
-  const tenants = app.get(TenantsService);
+/**
+ * Single-tenant app: there is one global set of roles (seeded once, see
+ * `database/seed.ts`). Each call creates a fresh Super Admin user (unique
+ * email) so tests stay independent without needing per-test tenants.
+ */
+export async function createTestAdmin(app: INestApplication): Promise<TestAdmin> {
+  const prisma = app.get(PrismaService);
   const suffix = randomUUID().slice(0, 8);
-  const adminEmail = `admin-${suffix}@test.hayryou`;
+  const adminEmail = `admin-${suffix}@test.keystonehr`;
   const password = "Test@12345";
 
-  const { tenant } = await tenants.provisionTenant({
-    name: `Test Tenant ${suffix}`,
-    slug: `test-${suffix}`,
-    admin: { name: "Test Admin", email: adminEmail, username: `admin-${suffix}`, password },
+  const superAdminRole = await prisma.client.role.findFirstOrThrow({
+    where: { nameEn: "Super Admin" },
+  });
+
+  await prisma.client.user.create({
+    data: {
+      name: "Test Admin",
+      email: adminEmail,
+      username: `admin-${suffix}`,
+      passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+      roleId: superAdminRole.id,
+      allBranches: true,
+    },
   });
 
   const res = await supertest(app.getHttpServer())
@@ -40,30 +51,28 @@ export async function provisionTenant(app: INestApplication): Promise<TestTenant
     .send({ identifier: adminEmail, password })
     .expect(200);
 
-  return { tenantId: tenant.id, adminEmail, password, accessToken: res.body.tokens.accessToken };
+  return { adminEmail, password, accessToken: res.body.tokens.accessToken };
 }
 
 /** Create a non-admin user with a given system role and branch assignments. */
 export async function createUserWithRole(
   app: INestApplication,
-  tenantId: string,
   roleName: string,
   branchIds: string[],
 ): Promise<{ accessToken: string; userId: string }> {
-  const db = app.get(AuthPrismaService);
-  const role = await db.role.findFirstOrThrow({ where: { tenantId, nameEn: roleName } });
+  const prisma = app.get(PrismaService);
+  const role = await prisma.client.role.findFirstOrThrow({ where: { nameEn: roleName } });
   const suffix = randomUUID().slice(0, 8);
   const password = "Test@12345";
-  const user = await db.user.create({
+  const user = await prisma.client.user.create({
     data: {
-      tenantId,
       name: `${roleName} ${suffix}`,
-      email: `${roleName.toLowerCase().replace(/\s/g, "-")}-${suffix}@test.hayryou`,
+      email: `${roleName.toLowerCase().replace(/\s/g, "-")}-${suffix}@test.keystonehr`,
       username: `user-${suffix}`,
       passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
       roleId: role.id,
       allBranches: false,
-      branchAssignments: { create: branchIds.map((branchId) => ({ tenantId, branchId })) },
+      branchAssignments: { create: branchIds.map((branchId) => ({ branchId })) },
     },
   });
 
@@ -75,25 +84,16 @@ export async function createUserWithRole(
   return { accessToken: res.body.tokens.accessToken, userId: user.id };
 }
 
-/** A valid create-customer payload with a fresh unique mobile each call. */
-export const validCustomerPayload = (overrides: Record<string, unknown> = {}) => ({
-  mobile: `+968${Math.floor(Math.random() * 1e8)
-    .toString()
-    .padStart(8, "0")}`,
-  name: "Test Customer",
-  email: null,
-  ...overrides,
-});
-
 export const validBranchPayload = (name: string) => ({
   nameEn: name,
   nameAr: `فرع ${name}`,
-  type: "corporate",
-  mobile: "+96890001111",
-  email: `${name.toLowerCase().replace(/\s/g, "-")}@test.hayryou`,
-  country: "Oman",
-  state: "Muscat",
-  city: "Muscat",
+  mobile: `+9715${Math.floor(Math.random() * 1e7)
+    .toString()
+    .padStart(7, "0")}`,
+  email: `${name.toLowerCase().replace(/\s/g, "-")}@test.keystonehr`,
+  country: "United Arab Emirates",
+  state: "Dubai",
+  city: "Dubai",
   address: "Test Street 1",
-  workingHours: { openingTime: "09:00", closingTime: "21:00", weeklyOffDays: ["friday"] },
+  workingHours: { openingTime: "09:00", closingTime: "18:00", weeklyOffDays: ["friday", "saturday"] },
 });

@@ -2,14 +2,13 @@ import { INestApplication } from "@nestjs/common";
 import supertest from "supertest";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApp, createUserWithRole, provisionTenant, validBranchPayload, type TestTenant } from "./helpers";
-import { AuthPrismaService } from "../src/database/auth-prisma.service";
+import { createApp, createTestAdmin, createUserWithRole, validBranchPayload, type TestAdmin } from "./helpers";
+import { PrismaService } from "../src/database/prisma.service";
 
 describe("leave", () => {
   let app: INestApplication;
-  let tenant: TestTenant;
-  let tenantB: TestTenant;
-  let db: AuthPrismaService;
+  let admin: TestAdmin;
+  let db: PrismaService;
   let branchId: string;
   let managerRoleId: string;
 
@@ -27,13 +26,13 @@ describe("leave", () => {
     const username = `leave-staff-${suffix}`;
     const password = "Staff@12345";
     const res = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name,
         username,
-        email: `${username}@test.hayryou`,
-        mobile: `+968${++mobileCounter}`,
+        email: `${username}@test.keystonehr`,
+        mobile: `+971${++mobileCounter}`,
         gender: "male",
         employmentType: "full_time",
         primaryBranchId: opts.branchId ?? branchId,
@@ -44,7 +43,7 @@ describe("leave", () => {
       })
       .expect(201);
     const userId = res.body.id as string;
-    const profile = await db.staffProfile.findUniqueOrThrow({ where: { userId } });
+    const profile = await db.client.employeeProfile.findUniqueOrThrow({ where: { userId } });
     const login = await request()
       .post("/api/v1/auth/login")
       .send({ identifier: username, password })
@@ -55,7 +54,7 @@ describe("leave", () => {
   async function createLeaveType(overrides: Record<string, unknown> = {}): Promise<string> {
     const res = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Leave Type ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة",
@@ -84,18 +83,17 @@ describe("leave", () => {
 
   beforeAll(async () => {
     app = await createApp();
-    db = app.get(AuthPrismaService);
-    tenant = await provisionTenant(app);
-    tenantB = await provisionTenant(app);
+    db = app.get(PrismaService);
+    admin = await createTestAdmin(app);
 
     const branch = await request()
       .post("/api/v1/branches")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload("Leave Branch"))
       .expect(201);
     branchId = branch.body.id;
 
-    const roles = await request().get("/api/v1/roles").set(auth(tenant.accessToken)).expect(200);
+    const roles = await request().get("/api/v1/roles").set(auth(admin.accessToken)).expect(200);
     managerRoleId = roles.body.find((r: { nameEn: string }) => r.nameEn === "Branch Manager").id;
   });
 
@@ -118,13 +116,13 @@ describe("leave", () => {
 
     const approved = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(approved.body.status).toBe("approved");
 
     const balances = await request()
       .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const balance = balances.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId);
     expect(balance.used).toBe(3);
@@ -132,7 +130,7 @@ describe("leave", () => {
     const midDate = startDate; // first day of the approved range
     const day = await request()
       .get(`/api/v1/attendance/${staff.staffProfileId}/days/${midDate}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(day.body.status).toBe("on_leave");
   });
@@ -150,21 +148,21 @@ describe("leave", () => {
 
     const rejected = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/reject`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ rejectionReason: "Short-staffed that week" })
       .expect(201);
     expect(rejected.body.status).toBe("rejected");
 
     const balances = await request()
       .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const balance = balances.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId);
     expect(balance.used).toBe(0);
 
     const day = await request()
       .get(`/api/v1/attendance/${staff.staffProfileId}/days/${startDate}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(day.body.status).not.toBe("on_leave");
   });
@@ -236,25 +234,25 @@ describe("leave", () => {
 
     const firstApprove = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(firstApprove.body.status).toBe("pending_second_approval");
 
     const balancesAfterFirst = await request()
       .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(balancesAfterFirst.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId).used).toBe(0);
 
     const secondApprove = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(secondApprove.body.status).toBe("approved");
 
     const balancesAfterSecond = await request()
       .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(balancesAfterSecond.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId).used).toBe(2);
   });
@@ -271,12 +269,12 @@ describe("leave", () => {
       .expect(201);
     await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     const res = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(409);
     expect(res.body.code).toBe("LEAVE_REQUEST_NOT_PENDING");
   });
@@ -291,31 +289,12 @@ describe("leave", () => {
       .send({ leaveTypeId, startDate, endDate, reason: "Test leave" })
       .expect(201);
 
-    const barber = await createUserWithRole(app, tenant.tenantId, "Barber", [branchId]);
+    const barber = await createUserWithRole(app, "Employee", [branchId]);
     const res = await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
       .set(auth(barber.accessToken))
       .expect(403);
     expect(res.body.code).toBe("PERMISSION_DENIED");
-  });
-
-  it("tenant B never sees or can act on tenant A's leave requests", async () => {
-    const staff = await createStaffMember("Isolated Staff");
-    const leaveTypeId = await createLeaveType();
-    const { startDate, endDate } = futureRange(5, 1);
-    const created = await request()
-      .post("/api/v1/leave/requests")
-      .set(auth(staff.accessToken))
-      .send({ leaveTypeId, startDate, endDate, reason: "Test leave" })
-      .expect(201);
-
-    const listB = await request().get("/api/v1/leave/requests").set(auth(tenantB.accessToken)).expect(200);
-    expect(listB.body.data.map((r: { id: string }) => r.id)).not.toContain(created.body.id);
-
-    await request()
-      .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenantB.accessToken))
-      .expect(404);
   });
 
   describe("half-day ranges", () => {
@@ -453,7 +432,7 @@ describe("leave", () => {
         .expect(201);
       await request()
         .post(`/api/v1/leave/requests/${first.body.id}/reject`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ rejectionReason: "no good" })
         .expect(201);
 
@@ -478,31 +457,31 @@ describe("leave", () => {
         .expect(201);
       await request()
         .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(201);
 
       const dayBefore = await request()
         .get(`/api/v1/attendance/${staff.staffProfileId}/days/${startDate}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(dayBefore.body.status).toBe("on_leave");
 
       const cancelled = await request()
         .post(`/api/v1/leave/requests/${created.body.id}/cancel`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ cancellationReason: "Plans changed" })
         .expect(201);
       expect(cancelled.body.status).toBe("cancelled");
 
       const balances = await request()
         .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(balances.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId).used).toBe(0);
 
       const dayAfter = await request()
         .get(`/api/v1/attendance/${staff.staffProfileId}/days/${startDate}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(dayAfter.body.status).not.toBe("on_leave");
     });
@@ -519,7 +498,7 @@ describe("leave", () => {
 
       const res = await request()
         .post(`/api/v1/leave/requests/${created.body.id}/cancel`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ cancellationReason: "Too soon" })
         .expect(409);
       expect(res.body.code).toBe("LEAVE_REQUEST_NOT_APPROVED");
@@ -589,13 +568,13 @@ describe("leave", () => {
 
       const balances = await request()
         .get(`/api/v1/leave/balances/${staff.staffProfileId}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(balances.body.find((b: { leaveTypeId: string }) => b.leaveTypeId === leaveTypeId).used).toBe(0);
 
       const day = await request()
         .get(`/api/v1/attendance/${staff.staffProfileId}/days/${startDate}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(day.body.status).not.toBe("on_leave");
     });
@@ -612,7 +591,7 @@ describe("leave", () => {
         .expect(201);
       await request()
         .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(201);
 
       const res = await request()
@@ -655,12 +634,12 @@ describe("leave", () => {
         .expect(201);
       await request()
         .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(201);
 
       const detail = await request()
         .get(`/api/v1/leave/requests/${created.body.id}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       expect(detail.body.reason).toBe("Trip");
       const actions = detail.body.history.map((h: { action: string }) => h.action);
@@ -679,44 +658,29 @@ describe("leave", () => {
         .expect(201);
       await request()
         .post(`/api/v1/leave/requests/${created.body.id}/reject`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ rejectionReason: "No coverage" })
         .expect(201);
 
       const detail = await request()
         .get(`/api/v1/leave/requests/${created.body.id}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .expect(200);
       const rejectedEntry = detail.body.history.find((h: { action: string }) => h.action === "leave_request.rejected");
       expect(rejectedEntry.note).toBe("No coverage");
     });
 
-    it("tenant B cannot view tenant A's request detail", async () => {
-      const staff = await createStaffMember("Detail Isolated Staff");
-      const leaveTypeId = await createLeaveType();
-      const { startDate, endDate } = futureRange(5, 1);
-      const created = await request()
-        .post("/api/v1/leave/requests")
-        .set(auth(staff.accessToken))
-        .send({ leaveTypeId, startDate, endDate, reason: "Test leave" })
-        .expect(201);
-
-      await request()
-        .get(`/api/v1/leave/requests/${created.body.id}`)
-        .set(auth(tenantB.accessToken))
-        .expect(404);
-    });
   });
 
   describe("attachments", () => {
-    it("presigns an upload URL namespaced under the tenant", async () => {
+    it("presigns an upload URL under the leave-attachments prefix", async () => {
       const res = await request()
         .post("/api/v1/leave/attachments/presign-upload")
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ fileName: "medical-note.pdf", contentType: "application/pdf" })
         .expect(201);
       expect(res.body.uploadUrl).toMatch(/^https?:\/\//);
-      expect(res.body.key).toContain(`tenants/${tenant.tenantId}/leave-attachments/`);
+      expect(res.body.key).toContain("leave-attachments/");
       expect(res.body.key).toContain("medical-note.pdf");
     });
   });

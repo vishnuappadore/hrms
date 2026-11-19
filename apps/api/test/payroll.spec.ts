@@ -4,18 +4,17 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createApp,
+  createTestAdmin,
   createUserWithRole,
-  provisionTenant,
   validBranchPayload,
-  type TestTenant,
+  type TestAdmin,
 } from "./helpers";
-import { AuthPrismaService } from "../src/database/auth-prisma.service";
+import { PrismaService } from "../src/database/prisma.service";
 
 describe("payroll", () => {
   let app: INestApplication;
-  let tenant: TestTenant;
-  let tenantB: TestTenant;
-  let db: AuthPrismaService;
+  let admin: TestAdmin;
+  let db: PrismaService;
   let branchAId: string;
   let branchBId: string;
   let managerRoleId: string;
@@ -31,7 +30,7 @@ describe("payroll", () => {
   async function createIsolatedBranch(): Promise<string> {
     const res = await request()
       .post("/api/v1/branches")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload(`Isolated Branch ${randomUUID().slice(0, 8)}`))
       .expect(201);
     return res.body.id as string;
@@ -50,7 +49,7 @@ describe("payroll", () => {
       const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       await request()
         .patch(`/api/v1/attendance/${staffProfileId}/days/${dateStr}`)
-        .set(auth(tenant.accessToken))
+        .set(auth(admin.accessToken))
         .send({ sessions: [{ checkInAt: `${dateStr}T09:00:00.000Z`, checkOutAt: `${dateStr}T17:00:00.000Z` }] })
         .expect(200);
     }
@@ -60,13 +59,13 @@ describe("payroll", () => {
   async function createStaff(baseSalaryMinor: number, branchId: string = branchAId): Promise<string> {
     const suffix = randomUUID().slice(0, 8);
     const res = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Staff ${suffix}`,
         username: `staff-${suffix}`,
-        email: `staff-${suffix}@test.hayryou`,
-        mobile: `+968${++mobileCounter}`,
+        email: `staff-${suffix}@test.keystonehr`,
+        mobile: `+971${++mobileCounter}`,
         gender: "male",
         employmentType: "full_time",
         primaryBranchId: branchId,
@@ -81,49 +80,48 @@ describe("payroll", () => {
 
   beforeAll(async () => {
     app = await createApp();
-    db = app.get(AuthPrismaService);
-    tenant = await provisionTenant(app);
-    tenantB = await provisionTenant(app);
+    db = app.get(PrismaService);
+    admin = await createTestAdmin(app);
 
     const branchA = await request()
       .post("/api/v1/branches")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload("Payroll Branch A"))
       .expect(201);
     branchAId = branchA.body.id;
 
     const branchB = await request()
       .post("/api/v1/branches")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload("Payroll Branch B"))
       .expect(201);
     branchBId = branchB.body.id;
 
-    const roles = await request().get("/api/v1/roles").set(auth(tenant.accessToken)).expect(200);
+    const roles = await request().get("/api/v1/roles").set(auth(admin.accessToken)).expect(200);
     managerRoleId = roles.body.find((r: { nameEn: string }) => r.nameEn === "Branch Manager").id;
 
     const allowance = await request()
       .put("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ items: [{ nameEn: `Housing ${randomUUID().slice(0, 6)}`, nameAr: "سكن", basis: "fixed_amount", defaultAmountMinor: 50000 }] })
       .expect(200);
     allowanceComponentId = allowance.body[0].id;
 
     const deduction = await request()
       .put("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ items: [{ nameEn: `PASI ${randomUUID().slice(0, 6)}`, nameAr: "التأمينات", basis: "fixed_amount", defaultAmountMinor: 20000 }] })
       .expect(200);
     deductionComponentId = deduction.body[0].id;
 
     const suffix = randomUUID().slice(0, 8);
     const staff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Payroll Staff ${suffix}`,
         username: `payroll-staff-${suffix}`,
-        email: `payroll-staff-${suffix}@test.hayryou`,
+        email: `payroll-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234567",
         gender: "male",
         employmentType: "full_time",
@@ -140,7 +138,7 @@ describe("payroll", () => {
 
     // staffUserId is reused by the two "2026-08" tests below with exact Net Pay assertions
     // predating Attendance — mark the whole month present so absenceDeductionMinor stays 0.
-    const staffProfile = await db.staffProfile.findUniqueOrThrow({ where: { userId: staffUserId } });
+    const staffProfile = await db.client.employeeProfile.findUniqueOrThrow({ where: { userId: staffUserId } });
     await markFullyPresent(staffProfile.id, 2026, 8);
   });
 
@@ -151,14 +149,14 @@ describe("payroll", () => {
   it("generates a run idempotently and computes Net Pay = base + allowances − statutory deductions", async () => {
     const first = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth })
       .expect(201);
     expect(first.body.branchId).toBe(branchAId);
 
     const second = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth })
       .expect(201);
     expect(second.body.id).toBe(first.body.id);
@@ -166,9 +164,9 @@ describe("payroll", () => {
     const runId = first.body.id;
     const items = await request()
       .get(`/api/v1/payroll/runs/${runId}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId);
     expect(item).toBeDefined();
     expect(item.baseSalaryMinor).toBe(300000);
     expect(item.allowancesTotalMinor).toBe(50000);
@@ -181,18 +179,18 @@ describe("payroll", () => {
   it("edits ad-hoc additions/deductions, recomputes Net Pay, approves, batches, and locks after Mark Paid", async () => {
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemId = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId).id;
+    const itemId = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId).id;
 
     const edited = await request()
       .patch(`/api/v1/payroll/items/${itemId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         additions: [{ labelEn: "Overtime", amountMinor: 10000 }],
         extraDeductions: [{ labelEn: "Advance", amountMinor: 5000 }],
@@ -202,34 +200,34 @@ describe("payroll", () => {
 
     const approved = await request()
       .post(`/api/v1/payroll/items/${itemId}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(approved.body.status).toBe("approved");
     expect(approved.body.batchNo).toBe(1);
 
     const batches = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/batches?tab=approved`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(batches.body[0].batchNo).toBe(1);
     expect(batches.body[0].count).toBe(1);
 
     const paid = await request()
       .post(`/api/v1/payroll/items/${itemId}/mark-paid`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(paid.body.status).toBe("paid");
 
     const lockedEdit = await request()
       .patch(`/api/v1/payroll/items/${itemId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ otherDeductionMinor: 1000 })
       .expect(409);
     expect(lockedEdit.body.code).toBe("PAYROLL_ITEM_LOCKED");
 
     const lockedRevert = await request()
       .post(`/api/v1/payroll/items/${itemId}/revert`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(409);
     expect(lockedRevert.body.code).toBe("PAYROLL_INVALID_TRANSITION");
   });
@@ -238,25 +236,25 @@ describe("payroll", () => {
     // No staff assigned to branch B — generating a run there is now blocked entirely (§D).
     const blocked = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchBId, payrollMonth: "2026-09" })
       .expect(409);
     expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_EMPLOYEES");
 
     const runA = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2026-09" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${runA.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const itemId = items.body.data[0].id;
 
     const rejected = await request()
       .post(`/api/v1/payroll/items/${itemId}/reject`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ reason: "Needs correction" })
       .expect(201);
     expect(rejected.body.status).toBe("rejected");
@@ -264,7 +262,7 @@ describe("payroll", () => {
 
     const reverted = await request()
       .post(`/api/v1/payroll/items/${itemId}/revert`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(reverted.body.status).toBe("pending");
   });
@@ -272,24 +270,24 @@ describe("payroll", () => {
   it("allows reverting an Approved item back to Pending (the bug that prompted the PAYROLL_ITEM_TRANSITIONS fix)", async () => {
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2027-02" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemId = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId).id;
+    const itemId = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId).id;
 
     const approved = await request()
       .post(`/api/v1/payroll/items/${itemId}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(approved.body.status).toBe("approved");
 
     const reverted = await request()
       .post(`/api/v1/payroll/items/${itemId}/revert`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(reverted.body.status).toBe("pending");
     expect(reverted.body.batchNo).toBeNull();
@@ -299,12 +297,12 @@ describe("payroll", () => {
     const syncMonth = "2026-12";
     const suffix = randomUUID().slice(0, 8);
     const secondStaff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Sync Staff ${suffix}`,
         username: `sync-staff-${suffix}`,
-        email: `sync-staff-${suffix}@test.hayryou`,
+        email: `sync-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234568",
         gender: "female",
         employmentType: "full_time",
@@ -319,43 +317,43 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: syncMonth })
       .expect(201);
     const runId = run.body.id;
 
     const beforeSync = await request()
       .get(`/api/v1/payroll/runs/${runId}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    expect(beforeSync.body.data.map((i: { staff: { id: string } }) => i.staff.id)).not.toContain(secondStaffId);
-    const originalItem = beforeSync.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId);
+    expect(beforeSync.body.data.map((i: { employee: { id: string } }) => i.employee.id)).not.toContain(secondStaffId);
+    const originalItem = beforeSync.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId);
     expect(originalItem).toBeDefined();
 
     // Reassign the second staff member's Primary Branch to branch A AFTER the run already exists.
     await request()
-      .patch(`/api/v1/users/${secondStaffId}`)
-      .set(auth(tenant.accessToken))
+      .patch(`/api/v1/employees/${secondStaffId}`)
+      .set(auth(admin.accessToken))
       .send({ primaryBranchId: branchAId, branchIds: [branchAId] })
       .expect(200);
 
     const synced = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: syncMonth })
       .expect(201);
     expect(synced.body.id).toBe(runId);
 
     const afterSync = await request()
       .get(`/api/v1/payroll/runs/${runId}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const newItem = afterSync.body.data.find((i: { staff: { id: string } }) => i.staff.id === secondStaffId);
+    const newItem = afterSync.body.data.find((i: { employee: { id: string } }) => i.employee.id === secondStaffId);
     expect(newItem).toBeDefined();
     expect(newItem.baseSalaryMinor).toBe(200000);
     expect(newItem.netPayMinor).toBe(200000);
 
-    const unchangedItem = afterSync.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId);
+    const unchangedItem = afterSync.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId);
     expect(unchangedItem).toEqual(originalItem);
   });
 
@@ -364,7 +362,7 @@ describe("payroll", () => {
 
     const before = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${previewMonth}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(before.body.runExists).toBe(false);
     expect(before.body.existingEmployeeCount).toBe(0);
@@ -374,19 +372,19 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: previewMonth })
       .expect(201);
     const runId = run.body.id;
     const itemsAfterGenerate = await request()
       .get(`/api/v1/payroll/runs/${runId}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(itemsAfterGenerate.body.data).toHaveLength(eligibleBeforeGenerate);
 
     const afterGenerate = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${previewMonth}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(afterGenerate.body.runExists).toBe(true);
     expect(afterGenerate.body.newEmployeeCount).toBe(0);
@@ -401,12 +399,12 @@ describe("payroll", () => {
 
     const suffix = randomUUID().slice(0, 8);
     await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Preview Staff ${suffix}`,
         username: `preview-staff-${suffix}`,
-        email: `preview-staff-${suffix}@test.hayryou`,
+        email: `preview-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234569",
         gender: "male",
         employmentType: "full_time",
@@ -420,7 +418,7 @@ describe("payroll", () => {
 
     const beforeSync = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${previewMonth}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(beforeSync.body.newEmployeeCount).toBe(1);
     expect(beforeSync.body.totalEmployeeCount).toBe(eligibleBeforeGenerate + 1);
@@ -428,19 +426,19 @@ describe("payroll", () => {
     const anyItemId = itemsAfterGenerate.body.data[0].id;
     await request()
       .post(`/api/v1/payroll/items/${anyItemId}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     const beforeSyncWithApproval = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${previewMonth}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(beforeSyncWithApproval.body.statusCounts.approved).toBe(1);
     expect(beforeSyncWithApproval.body.statusCounts.pending).toBe(eligibleBeforeGenerate - 1);
 
     await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: previewMonth })
       .expect(201);
 
@@ -448,7 +446,7 @@ describe("payroll", () => {
       (["pending", "approved", "rejected"] as const).map((tab) =>
         request()
           .get(`/api/v1/payroll/runs/${runId}/items?tab=${tab}`)
-          .set(auth(tenant.accessToken))
+          .set(auth(admin.accessToken))
           .expect(200),
       ),
     );
@@ -457,7 +455,7 @@ describe("payroll", () => {
   });
 
   it("receptionist (no payroll.view) gets 403 previewing a run", async () => {
-    const receptionist = await createUserWithRole(app, tenant.tenantId, "Receptionist", [branchAId]);
+    const receptionist = await createUserWithRole(app, "Employee", [branchAId]);
     const res = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${payrollMonth}`)
       .set(auth(receptionist.accessToken))
@@ -466,7 +464,7 @@ describe("payroll", () => {
   });
 
   it("branch manager scoped to branch B gets 403 previewing branch A's run", async () => {
-    const manager = await createUserWithRole(app, tenant.tenantId, "Branch Manager", [branchBId]);
+    const manager = await createUserWithRole(app, "Branch Manager", [branchBId]);
     const res = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchAId}&payrollMonth=${payrollMonth}`)
       .set(auth(manager.accessToken))
@@ -475,7 +473,7 @@ describe("payroll", () => {
   });
 
   it("receptionist (no payroll.generate) gets 403 generating a run", async () => {
-    const receptionist = await createUserWithRole(app, tenant.tenantId, "Receptionist", [branchAId]);
+    const receptionist = await createUserWithRole(app, "Employee", [branchAId]);
     const res = await request()
       .post("/api/v1/payroll/runs")
       .set(auth(receptionist.accessToken))
@@ -485,7 +483,7 @@ describe("payroll", () => {
   });
 
   it("branch manager scoped to branch B gets 403 reading branch A's run", async () => {
-    const manager = await createUserWithRole(app, tenant.tenantId, "Branch Manager", [branchBId]);
+    const manager = await createUserWithRole(app, "Branch Manager", [branchBId]);
     const res = await request()
       .get(`/api/v1/payroll/runs?branchId=${branchAId}&payrollMonth=${payrollMonth}`)
       .set(auth(manager.accessToken))
@@ -497,12 +495,12 @@ describe("payroll", () => {
     const suffix = randomUUID().slice(0, 8);
     // 2027-03 has 31 days; joining on the 21st pays for days 21..31 = 11 days.
     const midMonthStaff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `MidMonth Staff ${suffix}`,
         username: `midmonth-staff-${suffix}`,
-        email: `midmonth-staff-${suffix}@test.hayryou`,
+        email: `midmonth-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234570",
         gender: "male",
         employmentType: "full_time",
@@ -520,14 +518,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2027-03" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === midMonthStaffId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === midMonthStaffId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(11);
     expect(item.totalDaysInMonth).toBe(31);
@@ -542,14 +540,14 @@ describe("payroll", () => {
   it("pays a full unprorated month for staff who joined before the payroll month (or have no Date of Join)", async () => {
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2027-04" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(item.totalDaysInMonth);
     expect(item.baseSalaryMinor).toBe(300000);
@@ -560,12 +558,12 @@ describe("payroll", () => {
     const excludeMonth = "2027-05";
     const suffix = randomUUID().slice(0, 8);
     const futureStaff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Future Staff ${suffix}`,
         username: `future-staff-${suffix}`,
-        email: `future-staff-${suffix}@test.hayryou`,
+        email: `future-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234571",
         gender: "male",
         employmentType: "full_time",
@@ -581,14 +579,14 @@ describe("payroll", () => {
 
     const preview = await request()
       .get(`/api/v1/payroll/runs/preview?branchId=${branchBId}&payrollMonth=${excludeMonth}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(preview.body.newEmployeeCount).toBe(0);
     expect(preview.body.totalEmployeeCount).toBe(0);
 
     const blocked = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchBId, payrollMonth: excludeMonth })
       .expect(409);
     expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_EMPLOYEES");
@@ -597,12 +595,12 @@ describe("payroll", () => {
     // then confirm the future joiner is absent from every tab.
     const eligibleSuffix = randomUUID().slice(0, 8);
     await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Eligible Staff ${eligibleSuffix}`,
         username: `eligible-staff-${eligibleSuffix}`,
-        email: `eligible-staff-${eligibleSuffix}@test.hayryou`,
+        email: `eligible-staff-${eligibleSuffix}@test.keystonehr`,
         mobile: "+96891234572",
         gender: "female",
         employmentType: "full_time",
@@ -616,7 +614,7 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchBId, payrollMonth: excludeMonth })
       .expect(201);
 
@@ -624,11 +622,11 @@ describe("payroll", () => {
       (["pending", "approved", "rejected"] as const).map((tab) =>
         request()
           .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=${tab}`)
-          .set(auth(tenant.accessToken))
+          .set(auth(admin.accessToken))
           .expect(200),
       ),
     );
-    const allStaffIds = allTabs.flatMap((res) => res.body.data.map((i: { staff: { id: string } }) => i.staff.id));
+    const allStaffIds = allTabs.flatMap((res) => res.body.data.map((i: { employee: { id: string } }) => i.employee.id));
     expect(allStaffIds).not.toContain(futureStaffId);
   });
 
@@ -636,12 +634,12 @@ describe("payroll", () => {
     const suffix = randomUUID().slice(0, 8);
     // 2027-07 has 31 days; joining on the 31st pays for 1 day.
     const lastDayStaff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `LastDay Staff ${suffix}`,
         username: `lastday-staff-${suffix}`,
-        email: `lastday-staff-${suffix}@test.hayryou`,
+        email: `lastday-staff-${suffix}@test.keystonehr`,
         mobile: "+96891234573",
         gender: "male",
         employmentType: "full_time",
@@ -657,14 +655,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2027-07" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === lastDayStaffId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === lastDayStaffId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(1);
     expect(item.baseSalaryMinor).toBe(10000);
@@ -676,12 +674,12 @@ describe("payroll", () => {
     const bulkStaffIds: string[] = [];
     for (const [i, suffix] of suffixes.entries()) {
       const created = await request()
-        .post("/api/v1/users")
-        .set(auth(tenant.accessToken))
+        .post("/api/v1/employees")
+        .set(auth(admin.accessToken))
         .send({
           name: `Bulk Staff ${suffix}`,
           username: `bulk-staff-${suffix}`,
-          email: `bulk-staff-${suffix}@test.hayryou`,
+          email: `bulk-staff-${suffix}@test.keystonehr`,
           mobile: `+9689123458${i}`,
           gender: "male",
           employmentType: "full_time",
@@ -697,24 +695,24 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: bulkMonth })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const bulkItemIds = bulkStaffIds.map(
-      (id) => items.body.data.find((i: { staff: { id: string } }) => i.staff.id === id).id,
+      (id) => items.body.data.find((i: { employee: { id: string } }) => i.employee.id === id).id,
     );
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds: bulkItemIds })
       .expect(201);
     for (const id of bulkItemIds) {
-      const detail = await request().get(`/api/v1/payroll/items/${id}`).set(auth(tenant.accessToken)).expect(200);
+      const detail = await request().get(`/api/v1/payroll/items/${id}`).set(auth(admin.accessToken)).expect(200);
       expect(detail.body.status).toBe("approved");
     }
 
@@ -722,23 +720,23 @@ describe("payroll", () => {
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-mark-paid`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds: [toMarkPaid] })
       .expect(201);
     const paidDetail = await request()
       .get(`/api/v1/payroll/items/${toMarkPaid}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(paidDetail.body.status).toBe("paid");
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-revert`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds: [toRevert] })
       .expect(201);
     const revertedDetail = await request()
       .get(`/api/v1/payroll/items/${toRevert}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(revertedDetail.body.status).toBe("pending");
     expect(revertedDetail.body.batchNo).toBeNull();
@@ -746,18 +744,18 @@ describe("payroll", () => {
     // Bulk revert also works from the Rejected tab.
     await request()
       .post(`/api/v1/payroll/items/${toRevert}/reject`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ reason: "Needs correction" })
       .expect(201);
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-revert`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds: [toRevert] })
       .expect(201);
     const revertedFromRejectedDetail = await request()
       .get(`/api/v1/payroll/items/${toRevert}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(revertedFromRejectedDetail.body.status).toBe("pending");
   });
@@ -770,26 +768,26 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: month })
       .expect(201);
 
     const page1 = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending&page=1&pageSize=1`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(page1.body.meta).toEqual({ page: 1, pageSize: 1, total: 2 });
     expect(page1.body.data).toHaveLength(1);
 
     const page2 = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending&page=2&pageSize=1`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(page2.body.meta).toEqual({ page: 2, pageSize: 1, total: 2 });
     expect(page2.body.data).toHaveLength(1);
     expect(page2.body.data[0].id).not.toBe(page1.body.data[0].id);
 
-    const staffIdsSeen = [page1.body.data[0], page2.body.data[0]].map((i: { staff: { id: string } }) => i.staff.id);
+    const staffIdsSeen = [page1.body.data[0], page2.body.data[0]].map((i: { employee: { id: string } }) => i.employee.id);
     expect(staffIdsSeen.sort()).toEqual([idA, idB].sort());
   });
 
@@ -800,26 +798,26 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: month })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const itemIds = [idA, idB].map(
-      (staffId) => items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffId).id,
+      (staffId) => items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffId).id,
     );
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds })
       .expect(201);
 
     const batches = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/batches?tab=approved`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const batch = batches.body[0];
     expect(batch.items).toBeUndefined();
@@ -828,26 +826,26 @@ describe("payroll", () => {
 
     const batchItemsPage1 = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/batches/${batch.id}/items?page=1&pageSize=1`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(batchItemsPage1.body.meta).toEqual({ page: 1, pageSize: 1, total: 2 });
     expect(batchItemsPage1.body.data).toHaveLength(1);
 
     const batchItemsPage2 = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/batches/${batch.id}/items?page=2&pageSize=1`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     expect(batchItemsPage2.body.data[0].id).not.toBe(batchItemsPage1.body.data[0].id);
 
     // A real batch id, but requested against a different run — must 404, not leak across runs.
     const otherRun = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: "2027-11" })
       .expect(201);
     await request()
       .get(`/api/v1/payroll/runs/${otherRun.body.id}/batches/${batch.id}/items`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(404);
   });
 
@@ -858,19 +856,19 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: branchAId, payrollMonth: month })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemIdA = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === idA).id;
-    const itemIdB = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === idB).id;
+    const itemIdA = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === idA).id;
+    const itemIdB = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === idB).id;
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ itemIds: [itemIdA, itemIdB] })
       .expect(201);
 
@@ -878,19 +876,19 @@ describe("payroll", () => {
     // tab now displays BOTH (paid renders inside the Approved tab).
     await request()
       .post(`/api/v1/payroll/items/${itemIdA}/mark-paid`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     // selectAll from the Approved tab, no exclusions — must resolve to just B (still `approved`),
     // NOT re-touch A (already `paid`, a terminal status).
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-mark-paid`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ selectAll: { tab: "approved" } })
       .expect(201);
 
-    const detailA = await request().get(`/api/v1/payroll/items/${itemIdA}`).set(auth(tenant.accessToken)).expect(200);
-    const detailB = await request().get(`/api/v1/payroll/items/${itemIdB}`).set(auth(tenant.accessToken)).expect(200);
+    const detailA = await request().get(`/api/v1/payroll/items/${itemIdA}`).set(auth(admin.accessToken)).expect(200);
+    const detailB = await request().get(`/api/v1/payroll/items/${itemIdB}`).set(auth(admin.accessToken)).expect(200);
     expect(detailA.body.status).toBe("paid");
     expect(detailB.body.status).toBe("paid");
   });
@@ -904,50 +902,32 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: month })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemIdC = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === idC).id;
+    const itemIdC = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === idC).id;
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ selectAll: { tab: "pending", excludeIds: [itemIdC] } })
       .expect(201);
 
     const afterA = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=approved`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    expect(afterA.body.data.map((i: { staff: { id: string } }) => i.staff.id).sort()).toEqual([idA, idB].sort());
+    expect(afterA.body.data.map((i: { employee: { id: string } }) => i.employee.id).sort()).toEqual([idA, idB].sort());
 
     const afterPending = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    expect(afterPending.body.data.map((i: { staff: { id: string } }) => i.staff.id)).toEqual([idC]);
-  });
-
-  it("tenant B cannot read tenant A's payroll item", async () => {
-    const run = await request()
-      .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
-      .send({ branchId: branchAId, payrollMonth: "2026-11" })
-      .expect(201);
-    const items = await request()
-      .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
-      .expect(200);
-    const itemId = items.body.data[0].id;
-
-    await request()
-      .get(`/api/v1/payroll/items/${itemId}`)
-      .set(auth(tenantB.accessToken))
-      .expect(404);
+    expect(afterPending.body.data.map((i: { employee: { id: string } }) => i.employee.id)).toEqual([idC]);
   });
 
   /** Creates a staff member and logs them in — for the Absence/Unpaid-leave tests below, which need
@@ -961,13 +941,13 @@ describe("payroll", () => {
     const username = `absence-staff-${suffix}`;
     const password = "Staff@12345";
     const res = await request()
-      .post("/api/v1/users")
-      .set(auth(tenant.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Absence Staff ${suffix}`,
         username,
-        email: `${username}@test.hayryou`,
-        mobile: `+968${++mobileCounter}`,
+        email: `${username}@test.keystonehr`,
+        mobile: `+971${++mobileCounter}`,
         gender: "male",
         employmentType: "full_time",
         primaryBranchId: branchId,
@@ -979,7 +959,7 @@ describe("payroll", () => {
       })
       .expect(201);
     const userId = res.body.id as string;
-    const profile = await db.staffProfile.findUniqueOrThrow({ where: { userId } });
+    const profile = await db.client.employeeProfile.findUniqueOrThrow({ where: { userId } });
     const login = await request()
       .post("/api/v1/auth/login")
       .send({ identifier: username, password })
@@ -990,7 +970,7 @@ describe("payroll", () => {
   async function markPresent(staffProfileId: string, dateStr: string): Promise<void> {
     await request()
       .patch(`/api/v1/attendance/${staffProfileId}/days/${dateStr}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ sessions: [{ checkInAt: `${dateStr}T09:00:00.000Z`, checkOutAt: `${dateStr}T17:00:00.000Z` }] })
       .expect(200);
   }
@@ -1008,14 +988,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2026-06" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(30);
     expect(item.totalDaysInMonth).toBe(30);
@@ -1038,14 +1018,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2026-06" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(11);
     expect(item.absenceDeductionMinor).toBe(0);
@@ -1061,7 +1041,7 @@ describe("payroll", () => {
 
     const leaveType = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Unpaid Leave ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة بدون راتب",
@@ -1080,21 +1060,21 @@ describe("payroll", () => {
     expect(created.body.daysCount).toBe(3);
     await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     // Feb 2028 is a leap year — 29 days. Gross = 290000 + 29000 = 319000;
     // leaveDeductionMinor = 319000 * 3/29 = 33000 exactly.
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-02" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item).toBeDefined();
     expect(item.totalDaysInMonth).toBe(29);
     expect(item.paidDays).toBe(29); // unaffected — unpaid leave no longer reduces paidDays
@@ -1112,7 +1092,7 @@ describe("payroll", () => {
 
     const leaveType = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Paid Leave ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة مدفوعة",
@@ -1129,19 +1109,19 @@ describe("payroll", () => {
       .expect(201);
     await request()
       .post(`/api/v1/leave/requests/${created.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-03" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item).toBeDefined();
     expect(item.paidDays).toBe(item.totalDaysInMonth);
     expect(item.absenceDeductionMinor).toBe(0);
@@ -1166,14 +1146,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2026-06" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item.absentDays).toBe(1);
     expect(item.absenceDeductionMinor).toBe(10000);
     expect(item.baseSalaryMinor).toBe(200000);
@@ -1192,20 +1172,20 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2026-06" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     expect(item.absenceDeductionMinor).toBe(10000); // 300000 * 1/30
     expect(item.leaveDeductionMinor).toBe(0);
 
     const edited = await request()
       .patch(`/api/v1/payroll/items/${item.id}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ absenceDeductionMinor: 5000, leaveDeductionMinor: 3000 })
       .expect(200);
     expect(edited.body.absenceDeductionMinor).toBe(5000);
@@ -1222,14 +1202,14 @@ describe("payroll", () => {
     // Generate the run FIRST — item snapshotted with no leave yet (Gross = 319000, no deduction).
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-02" })
       .expect(201);
     const itemsBefore = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemBefore = itemsBefore.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId);
+    const itemBefore = itemsBefore.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId);
     const itemId = itemBefore.id;
     expect(itemBefore.paidDays).toBe(29);
     expect(itemBefore.leaveDeductionMinor).toBe(0);
@@ -1238,7 +1218,7 @@ describe("payroll", () => {
     // THEN the staff applies and gets approved for 3 days of unpaid leave in that same month.
     const leaveType = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Unpaid Leave ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة بدون راتب",
@@ -1255,18 +1235,18 @@ describe("payroll", () => {
       .expect(201);
     await request()
       .post(`/api/v1/leave/requests/${leaveRequest.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     // Without recompute, the item is still stale — confirm it, then recompute.
-    const stillStale = await request().get(`/api/v1/payroll/items/${itemId}`).set(auth(tenant.accessToken)).expect(200);
+    const stillStale = await request().get(`/api/v1/payroll/items/${itemId}`).set(auth(admin.accessToken)).expect(200);
     expect(stillStale.body.leaveDeductionMinor).toBe(0);
     expect(stillStale.body.netPayMinor).toBe(290000 + 29000);
 
     // Gross(319000) * 3/29 = 33000 exactly.
     const recomputed = await request()
       .post(`/api/v1/payroll/items/${itemId}/recompute`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(recomputed.body.paidDays).toBe(29); // unaffected — join-date only
     expect(recomputed.body.baseSalaryMinor).toBe(290000); // unaffected — full
@@ -1282,20 +1262,20 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-05" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
     const itemId = items.body.data[0].id;
 
-    await request().post(`/api/v1/payroll/items/${itemId}/approve`).set(auth(tenant.accessToken)).expect(201);
+    await request().post(`/api/v1/payroll/items/${itemId}/approve`).set(auth(admin.accessToken)).expect(201);
 
     const res = await request()
       .post(`/api/v1/payroll/items/${itemId}/recompute`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(409);
     expect(res.body.code).toBe("PAYROLL_ITEM_LOCKED");
   });
@@ -1306,26 +1286,26 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-04" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemId = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staff.userId).id;
+    const itemId = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staff.userId).id;
 
     // Manual overrides, applied BEFORE the unpaid leave exists.
     const edited = await request()
       .patch(`/api/v1/payroll/items/${itemId}`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ otherDeductionMinor: 2000, extraDeductions: [{ labelEn: "Advance", amountMinor: 1000 }] })
       .expect(200);
     expect(edited.body.netPayMinor).toBe(300000 - 2000 - 1000);
 
     const leaveType = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Unpaid Leave ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة بدون راتب",
@@ -1342,12 +1322,12 @@ describe("payroll", () => {
       .expect(201);
     await request()
       .post(`/api/v1/leave/requests/${leaveRequest.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     const recomputed = await request()
       .post(`/api/v1/payroll/items/${itemId}/recompute`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(recomputed.body.paidDays).toBe(30); // unaffected — unpaid leave no longer reduces paidDays
     expect(recomputed.body.baseSalaryMinor).toBe(300000); // unaffected — full, unprorated
@@ -1365,14 +1345,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId: isolatedBranchId, payrollMonth: "2028-06" })
       .expect(201);
 
     // Only staffA gets approved unpaid leave — staffB stays untouched throughout.
     const leaveType = await request()
       .post("/api/v1/leave-types")
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         nameEn: `Unpaid Leave ${randomUUID().slice(0, 6)}`,
         nameAr: "إجازة بدون راتب",
@@ -1389,21 +1369,21 @@ describe("payroll", () => {
       .expect(201);
     await request()
       .post(`/api/v1/leave/requests/${leaveRequest.body.id}/approve`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
 
     await request()
       .post(`/api/v1/payroll/runs/${run.body.id}/bulk-recompute`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .send({ selectAll: { tab: "pending", excludeIds: [] } })
       .expect(201);
 
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenant.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemA = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffA.userId);
-    const itemB = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffB.userId);
+    const itemA = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffA.userId);
+    const itemB = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffB.userId);
 
     expect(itemA.unpaidLeaveDays).toBe(2);
     expect(itemA.leaveDeductionMinor).toBe(20000); // 300000 * 2/30
@@ -1413,27 +1393,25 @@ describe("payroll", () => {
   });
 
   it("a percentage-basis payroll component is computed live from base salary, not the stale stored snapshot", async () => {
-    // Isolated under tenantB — the fixed_amount allowance/deduction catalog under `tenant` is
-    // shared across this whole file via a full-replace PUT, so a separate tenant avoids touching it.
     const branch = await request()
       .post("/api/v1/branches")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload("Percentage Component Branch"))
       .expect(201);
     const branchId = branch.body.id;
-    const roles = await request().get("/api/v1/roles").set(auth(tenantB.accessToken)).expect(200);
+    const roles = await request().get("/api/v1/roles").set(auth(admin.accessToken)).expect(200);
     const managerRoleId = roles.body.find((r: { nameEn: string }) => r.nameEn === "Branch Manager").id;
 
     const allowance = await request()
       .put("/api/v1/payroll-components?category=allowance")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         items: [{ nameEn: `Transport ${randomUUID().slice(0, 6)}`, nameAr: "مواصلات", basis: "percentage_of_base", defaultRatePct: 10 }],
       })
       .expect(200);
     const deduction = await request()
       .put("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         items: [{ nameEn: `ESI ${randomUUID().slice(0, 6)}`, nameAr: "التأمينات", basis: "percentage_of_base", defaultRatePct: 12 }],
       })
@@ -1441,13 +1419,13 @@ describe("payroll", () => {
 
     const suffix = randomUUID().slice(0, 8);
     const staff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenantB.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Percentage Staff ${suffix}`,
         username: `pct-staff-${suffix}`,
-        email: `pct-staff-${suffix}@test.hayryou`,
-        mobile: "+96891111111",
+        email: `pct-staff-${suffix}@test.keystonehr`,
+        mobile: "+971911111110",
         gender: "male",
         employmentType: "full_time",
         primaryBranchId: branchId,
@@ -1465,14 +1443,14 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId, payrollMonth: "2028-07" })
       .expect(201);
     const items = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const item = items.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId);
+    const item = items.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId);
     expect(item).toBeDefined();
     expect(item.allowancesTotalMinor).toBe(30000); // 300000 * 10%, not the stored 999
     expect(item.statutoryDeductionsTotalMinor).toBe(36000); // 300000 * 12%, not the stored 999
@@ -1482,16 +1460,16 @@ describe("payroll", () => {
   it("recompute updates a percentage-basis component after the staff member's base salary changes", async () => {
     const branch = await request()
       .post("/api/v1/branches")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send(validBranchPayload("Percentage Recompute Branch"))
       .expect(201);
     const branchId = branch.body.id;
-    const roles = await request().get("/api/v1/roles").set(auth(tenantB.accessToken)).expect(200);
+    const roles = await request().get("/api/v1/roles").set(auth(admin.accessToken)).expect(200);
     const managerRoleId = roles.body.find((r: { nameEn: string }) => r.nameEn === "Branch Manager").id;
 
     const deduction = await request()
       .put("/api/v1/payroll-components?category=deduction")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send({
         items: [{ nameEn: `ESI ${randomUUID().slice(0, 6)}`, nameAr: "التأمينات", basis: "percentage_of_base", defaultRatePct: 12 }],
       })
@@ -1499,13 +1477,13 @@ describe("payroll", () => {
 
     const suffix = randomUUID().slice(0, 8);
     const staff = await request()
-      .post("/api/v1/users")
-      .set(auth(tenantB.accessToken))
+      .post("/api/v1/employees")
+      .set(auth(admin.accessToken))
       .send({
         name: `Recompute Percentage Staff ${suffix}`,
         username: `pct-recompute-${suffix}`,
-        email: `pct-recompute-${suffix}@test.hayryou`,
-        mobile: "+96891111112",
+        email: `pct-recompute-${suffix}@test.keystonehr`,
+        mobile: "+971911111111",
         gender: "male",
         employmentType: "full_time",
         primaryBranchId: branchId,
@@ -1520,25 +1498,25 @@ describe("payroll", () => {
 
     const run = await request()
       .post("/api/v1/payroll/runs")
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .send({ branchId, payrollMonth: "2028-08" })
       .expect(201);
     const itemsBefore = await request()
       .get(`/api/v1/payroll/runs/${run.body.id}/items?tab=pending`)
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .expect(200);
-    const itemId = itemsBefore.body.data.find((i: { staff: { id: string } }) => i.staff.id === staffUserId).id;
+    const itemId = itemsBefore.body.data.find((i: { employee: { id: string } }) => i.employee.id === staffUserId).id;
     expect(itemsBefore.body.data.find((i: { id: string }) => i.id === itemId).statutoryDeductionsTotalMinor).toBe(24000); // 200000 * 12%
 
     await request()
-      .patch(`/api/v1/users/${staffUserId}`)
-      .set(auth(tenantB.accessToken))
+      .patch(`/api/v1/employees/${staffUserId}`)
+      .set(auth(admin.accessToken))
       .send({ baseSalaryMinor: 500000 })
       .expect(200);
 
     const recomputed = await request()
       .post(`/api/v1/payroll/items/${itemId}/recompute`)
-      .set(auth(tenantB.accessToken))
+      .set(auth(admin.accessToken))
       .expect(201);
     expect(recomputed.body.baseSalaryMinor).toBe(500000);
     expect(recomputed.body.statutoryDeductionsTotalMinor).toBe(60000); // 500000 * 12%, reflecting the NEW salary

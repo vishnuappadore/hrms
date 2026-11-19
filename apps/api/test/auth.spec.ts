@@ -1,15 +1,15 @@
 import { INestApplication } from "@nestjs/common";
 import supertest from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createApp, provisionTenant, type TestTenant } from "./helpers";
+import { createApp, createTestAdmin, type TestAdmin } from "./helpers";
 
 describe("auth", () => {
   let app: INestApplication;
-  let tenant: TestTenant;
+  let admin: TestAdmin;
 
   beforeAll(async () => {
     app = await createApp();
-    tenant = await provisionTenant(app);
+    admin = await createTestAdmin(app);
   });
 
   afterAll(async () => {
@@ -19,7 +19,7 @@ describe("auth", () => {
   it("logs in with email and returns tokens + user", async () => {
     const res = await supertest(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ identifier: tenant.adminEmail, password: tenant.password })
+      .send({ identifier: admin.adminEmail, password: admin.password })
       .expect(200);
     expect(res.body.tokens.accessToken).toBeTruthy();
     expect(res.body.tokens.refreshToken).toBeTruthy();
@@ -33,7 +33,7 @@ describe("auth", () => {
   it("rejects wrong password with stable error code", async () => {
     const res = await supertest(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ identifier: tenant.adminEmail, password: "wrong-password" })
+      .send({ identifier: admin.adminEmail, password: "wrong-password" })
       .expect(401);
     expect(res.body.code).toBe("INVALID_CREDENTIALS");
   });
@@ -49,7 +49,7 @@ describe("auth", () => {
   it("rotates refresh tokens: old refresh token becomes invalid", async () => {
     const login = await supertest(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ identifier: tenant.adminEmail, password: tenant.password })
+      .send({ identifier: admin.adminEmail, password: admin.password })
       .expect(200);
     const firstRefresh = login.body.tokens.refreshToken;
 
@@ -70,11 +70,11 @@ describe("auth", () => {
     await supertest(app.getHttpServer()).get("/api/v1/branches").expect(401);
   });
 
-  it("serves /users/me for the authenticated user", async () => {
+  it("serves /employees/me for the authenticated user", async () => {
     const res = await supertest(app.getHttpServer())
-      .get("/api/v1/users/me")
-      .set("Authorization", `Bearer ${tenant.accessToken}`)
+      .get("/api/v1/employees/me")
+      .set("Authorization", `Bearer ${admin.accessToken}`)
       .expect(200);
-    expect(res.body.email).toBe(tenant.adminEmail);
+    expect(res.body.email).toBe(admin.adminEmail);
   });
 });
