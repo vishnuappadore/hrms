@@ -98,7 +98,7 @@ export type AttendanceSession = z.infer<typeof AttendanceSessionSchema>;
  * `POST /attendance/check-in`, `POST /attendance/check-out`, and
  * `GET /attendance/me/today` all return this same shape — the self-service
  * "am I checked in right now" contract the Dashboard widget reads. Neither
- * mutation takes a body; the server resolves the caller's own staff profile.
+ * mutation takes a body; the server resolves the caller's own employee profile.
  */
 export const MyAttendanceTodaySchema = z.object({
   isCheckedIn: z.boolean(),

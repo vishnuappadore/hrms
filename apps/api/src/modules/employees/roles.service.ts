@@ -1,5 +1,4 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { ClsService } from "nestjs-cls";
 import {
   ERROR_CODES,
   type CreateRoleInput,
@@ -9,7 +8,6 @@ import {
   type RoleSummary,
   type UpdateRoleInput,
 } from "@keystonehr/shared";
-import { CLS_KEYS } from "../../common/request-context";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionSetService } from "../../common/permission-set.service";
@@ -19,7 +17,6 @@ export class RolesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly cls: ClsService,
   ) {}
 
   /** Read-only role listing for the user-form dropdown — no permission data. */
@@ -41,7 +38,7 @@ export class RolesService {
       nameAr: role.nameAr,
       isSystem: role.isSystem,
       isSuperAdmin: role.isSuperAdmin,
-      staffCount: role._count.users,
+      employeeCount: role._count.users,
     }));
   }
 
@@ -60,7 +57,7 @@ export class RolesService {
       nameAr: role.nameAr,
       isSystem: role.isSystem,
       isSuperAdmin: role.isSuperAdmin,
-      staffCount: role._count.users,
+      employeeCount: role._count.users,
       // Trusted at the write boundary (CreateRoleSchema/UpdateRoleSchema validate against the
       // catalog); role_permissions.permission_key is a plain string column, not a DB enum.
       permissionKeys: role.permissions.map((p) => p.permissionKey as PermissionKey),
@@ -68,19 +65,17 @@ export class RolesService {
   }
 
   async create(input: CreateRoleInput): Promise<RoleDetail> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     await this.assertNameFree(input.nameEn);
 
-    const created = await this.prisma.withTenantTx(async (tx) => {
+    const created = await this.prisma.client.$transaction(async (tx) => {
       const role = await tx.role.create({
         data: {
-          tenantId,
           nameEn: input.nameEn,
           nameAr: input.nameAr,
           isSystem: false,
           isSuperAdmin: false,
           permissions: {
-            create: input.permissionKeys.map((permissionKey) => ({ tenantId, permissionKey })),
+            create: input.permissionKeys.map((permissionKey) => ({ permissionKey })),
           },
         },
       });
@@ -105,15 +100,14 @@ export class RolesService {
     this.assertNotSuperAdmin(role.isSuperAdmin, "edited");
     await this.assertNameFree(input.nameEn, id);
 
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       await tx.role.update({ where: { id }, data: { nameEn: input.nameEn, nameAr: input.nameAr } });
       // permissionKeys omitted = rename only; never treat "not sent" as "remove everything".
       if (input.permissionKeys) {
         await tx.rolePermission.deleteMany({ where: { roleId: id } });
         if (input.permissionKeys.length > 0) {
           await tx.rolePermission.createMany({
-            data: input.permissionKeys.map((permissionKey) => ({ tenantId, roleId: id, permissionKey })),
+            data: input.permissionKeys.map((permissionKey) => ({ roleId: id, permissionKey })),
           });
         }
       }
@@ -138,15 +132,15 @@ export class RolesService {
     if (!role) throw new NotFoundException();
     this.assertNotSuperAdmin(role.isSuperAdmin, "deleted");
 
-    const staffCount = await this.prisma.client.user.count({ where: { roleId: id } });
-    if (staffCount > 0) {
+    const employeeCount = await this.prisma.client.user.count({ where: { roleId: id } });
+    if (employeeCount > 0) {
       throw new ConflictException({
         code: ERROR_CODES.ROLE_IN_USE,
-        message: "Reassign the staff members holding this role before deleting it",
+        message: "Reassign the employees holding this role before deleting it",
       });
     }
 
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       await tx.role.delete({ where: { id } });
       await this.audit.log(
         { action: "role.deleted", entityType: "role", entityId: id, before: { nameEn: role.nameEn, nameAr: role.nameAr } },
@@ -166,8 +160,7 @@ export class RolesService {
     }
   }
 
-  /** RLS scopes the lookup, so a foreign tenant's name clash is simply not found. Uniqueness is
-   *  checked on the stable English name only (matching Branch/LeaveType's own convention). */
+  /** Uniqueness is checked on the stable English name only (matching Branch/LeaveType's own convention). */
   private async assertNameFree(nameEn: string, excludeId?: string): Promise<void> {
     const clash = await this.prisma.client.role.findFirst({
       where: { nameEn, ...(excludeId ? { id: { not: excludeId } } : {}) },

@@ -32,7 +32,7 @@ export function MyPanelWidget() {
   const locale = useLocale();
   const { data, isLoading, error: todayError } = useMyAttendanceToday();
   const noStaffProfile =
-    todayError instanceof ApiError && todayError.code === "ATTENDANCE_NO_STAFF_PROFILE";
+    todayError instanceof ApiError && todayError.code === "ATTENDANCE_NO_EMPLOYEE_PROFILE";
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const permissions = usePermissions();
@@ -56,7 +56,7 @@ export function MyPanelWidget() {
       setError(
         code === "ATTENDANCE_ALREADY_CHECKED_IN" || code === "ATTENDANCE_NOT_CHECKED_IN"
           ? t("staleState")
-          : code === "ATTENDANCE_NO_STAFF_PROFILE"
+          : code === "ATTENDANCE_NO_EMPLOYEE_PROFILE"
             ? t("noStaffProfile")
             : tc("errors.GENERIC"),
       );

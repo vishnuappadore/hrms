@@ -195,8 +195,8 @@ export function renderPayslipHtml(
   <p class="sub">${t.payslip} — ${escapeHtml(detail.payrollMonth)}</p>
 
   <div class="meta">
-    <div><span>${t.employee}</span><span>${escapeHtml(detail.staff.name)}</span></div>
-    <div><span>${t.role}</span><span>${escapeHtml(detail.staff.role ?? "—")}</span></div>
+    <div><span>${t.employee}</span><span>${escapeHtml(detail.employee.name)}</span></div>
+    <div><span>${t.role}</span><span>${escapeHtml(detail.employee.role ?? "—")}</span></div>
     <div><span>${t.period}</span><span>${escapeHtml(detail.payrollMonth)}</span></div>
     <div><span>${t.status}</span><span><span class="status-pill">${STATUS_LABEL[detail.status][locale]}</span></span></div>
     ${payDateRow}

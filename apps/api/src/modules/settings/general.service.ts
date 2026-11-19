@@ -1,54 +1,43 @@
-import { ConflictException, Injectable } from "@nestjs/common";
-import { ClsService } from "nestjs-cls";
-import { ERROR_CODES, type GeneralSettings, type UpdateGeneralSettingsInput } from "@keystonehr/shared";
-import { CLS_KEYS } from "../../common/request-context";
+import { Injectable } from "@nestjs/common";
+import type { GeneralSettings, UpdateGeneralSettingsInput } from "@keystonehr/shared";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditService } from "../audit/audit.service";
+
+const COMPANY_SETTINGS_ID = "default";
 
 @Injectable()
 export class GeneralSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly cls: ClsService,
   ) {}
 
   async get(): Promise<GeneralSettings> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    const [tenant, branchCount] = await Promise.all([
-      this.prisma.client.tenant.findUniqueOrThrow({ where: { id: tenantId } }),
-      this.prisma.client.branch.count({ where: { tenantId } }),
+    const [company, branchCount] = await Promise.all([
+      this.prisma.client.companySettings.findUniqueOrThrow({ where: { id: COMPANY_SETTINGS_ID } }),
+      this.prisma.client.branch.count(),
     ]);
     return {
-      defaultLocale: tenant.defaultLocale,
-      timezone: tenant.timezone,
-      defaultCurrency: tenant.defaultCurrency,
-      useWesternNumeralsInArabic: tenant.useWesternNumeralsInArabic,
-      weekStartsOn: tenant.weekStartsOn as GeneralSettings["weekStartsOn"],
+      defaultLocale: company.defaultLocale,
+      timezone: company.timezone,
+      defaultCurrency: company.defaultCurrency,
+      useWesternNumeralsInArabic: company.useWesternNumeralsInArabic,
+      weekStartsOn: company.weekStartsOn as GeneralSettings["weekStartsOn"],
       branchCount,
     };
   }
 
   async update(input: UpdateGeneralSettingsInput): Promise<GeneralSettings> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    await this.prisma.withTenantTx(async (tx) => {
-      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
-      if (input.defaultCurrency !== tenant.defaultCurrency) {
-        const branchCount = await tx.branch.count({ where: { tenantId } });
-        if (branchCount > 0) {
-          throw new ConflictException({
-            code: ERROR_CODES.TENANT_CURRENCY_LOCKED,
-            message:
-              "Default currency can't change once a branch exists — branches already inherited the prior default",
-          });
-        }
-      }
-      const updated = await tx.tenant.update({ where: { id: tenantId }, data: input });
+    await this.prisma.client.$transaction(async (tx) => {
+      const updated = await tx.companySettings.update({
+        where: { id: COMPANY_SETTINGS_ID },
+        data: input,
+      });
       await this.audit.log(
         {
           action: "general_settings.updated",
-          entityType: "tenant",
-          entityId: tenantId,
+          entityType: "company_settings",
+          entityId: COMPANY_SETTINGS_ID,
           after: { ...input },
         },
         tx,

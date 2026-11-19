@@ -9,13 +9,13 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY packages/config/package.json packages/config/
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
-RUN pnpm install --frozen-lockfile --filter @hayryou/api...
+RUN pnpm install --frozen-lockfile --filter @keystonehr/api...
 COPY packages ./packages
 COPY apps/api ./apps/api
-RUN pnpm --filter @hayryou/shared build \
-  && pnpm --filter @hayryou/api db:generate \
-  && pnpm --filter @hayryou/api build \
-  && pnpm --filter @hayryou/api --prod deploy /out \
+RUN pnpm --filter @keystonehr/shared build \
+  && pnpm --filter @keystonehr/api db:generate \
+  && pnpm --filter @keystonehr/api build \
+  && pnpm --filter @keystonehr/api --prod deploy /out \
   # Regenerate the Prisma client INTO the pruned deploy output — `pnpm --prod deploy`
   # rebuilds node_modules from the store and drops the client generated above.
   && cd /out && ./node_modules/.bin/prisma generate

@@ -1,5 +1,4 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { ClsService } from "nestjs-cls";
 import { Prisma } from "@prisma/client";
 import {
   ERROR_CODES,
@@ -8,7 +7,6 @@ import {
   type PayrollComponentListItemInput,
   type SavePayrollComponentsInput,
 } from "@keystonehr/shared";
-import { CLS_KEYS } from "../../common/request-context";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditService } from "../audit/audit.service";
 
@@ -19,7 +17,6 @@ export class PayrollComponentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly cls: ClsService,
   ) {}
 
   async list(category?: PayrollComponentCategory): Promise<PayrollComponentResponse[]> {
@@ -40,8 +37,6 @@ export class PayrollComponentsService {
     category: PayrollComponentCategory,
     input: SavePayrollComponentsInput,
   ): Promise<PayrollComponentResponse[]> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-
     const existing = await this.prisma.client.payrollComponent.findMany({
       where: { category, isActive: true },
     });
@@ -61,7 +56,7 @@ export class PayrollComponentsService {
     const incomingIds = new Set(input.items.filter((i) => i.id).map((i) => i.id));
     const toDeactivate = existing.filter((c) => !incomingIds.has(c.id));
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const saved: PayrollComponentRow[] = [];
       for (const item of input.items) {
         const data = {
@@ -77,7 +72,7 @@ export class PayrollComponentsService {
         saved.push(
           item.id
             ? await tx.payrollComponent.update({ where: { id: item.id }, data })
-            : await tx.payrollComponent.create({ data: { ...data, tenantId, category } }),
+            : await tx.payrollComponent.create({ data: { ...data, category } }),
         );
       }
 

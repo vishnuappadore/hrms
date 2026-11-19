@@ -4,16 +4,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: hayryou_migrator
-      POSTGRES_PASSWORD: hayryou_dev
-      POSTGRES_DB: hayryou
+      POSTGRES_USER: keystonehr
+      POSTGRES_PASSWORD: keystonehr_dev
+      POSTGRES_DB: keystonehr
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Creates the non-owner app role (RLS is bypassed for table owners,
-      # so the API must NEVER connect as hayryou_migrator).
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hayryou_migrator -d hayryou"]
+      test: ["CMD-SHELL", "pg_isready -U keystonehr -d keystonehr"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -42,8 +39,8 @@ services:
       - "9000:9000"
       - "9001:9001" # console
     environment:
-      MINIO_ROOT_USER: hayryou
-      MINIO_ROOT_PASSWORD: hayryou_dev
+      MINIO_ROOT_USER: keystonehr
+      MINIO_ROOT_PASSWORD: keystonehr_dev
       # MinIO doesn't implement the S3 PutBucketCors API (calling it returns
       # NotImplemented) — CORS is a server-level setting here, not per-bucket.
       # Dev-only wildcard; real S3 in prod uses a real bucket CORS policy instead.

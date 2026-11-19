@@ -45,7 +45,7 @@ const ITEM_INCLUDE = {
       id: true,
       name: true,
       role: { select: { nameEn: true } },
-      staffProfile: { select: { joiningDate: true } },
+      employeeProfile: { select: { joiningDate: true } },
     },
   },
   batch: { select: { batchNo: true } },
@@ -65,10 +65,10 @@ const DETAIL_INCLUDE = {
 
 type ItemDetailRow = Prisma.PayrollItemGetPayload<{ include: typeof DETAIL_INCLUDE }>;
 
-/** Shared by generation and sync — everything needed to snapshot one staff member's payroll item. */
-const ELIGIBLE_STAFF_SELECT = {
+/** Shared by generation and sync — everything needed to snapshot one employee's payroll item. */
+const ELIGIBLE_EMPLOYEE_SELECT = {
   id: true,
-  staffProfile: {
+  employeeProfile: {
     select: {
       id: true,
       baseSalaryMinor: true,
@@ -85,8 +85,8 @@ const ELIGIBLE_STAFF_SELECT = {
   },
 } satisfies Prisma.UserSelect;
 
-type EligibleStaffRow = Prisma.UserGetPayload<{ select: typeof ELIGIBLE_STAFF_SELECT }>;
-type EligibleStaffProfile = NonNullable<EligibleStaffRow["staffProfile"]>;
+type EligibleEmployeeRow = Prisma.UserGetPayload<{ select: typeof ELIGIBLE_EMPLOYEE_SELECT }>;
+type EligibleEmployeeProfile = NonNullable<EligibleEmployeeRow["employeeProfile"]>;
 
 type BulkAction = "approve" | "reject" | "mark-paid" | "revert";
 
@@ -126,12 +126,10 @@ export class PayrollService {
   /* ── Runs ──────────────────────────────────────────────────────────────── */
 
   async getRun(query: GetPayrollRunQuery): Promise<PayrollRunResponse | null> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     this.assertBranchAccess(query.branchId);
     const run = await this.prisma.client.payrollRun.findUnique({
       where: {
-        tenantId_branchId_payrollMonth: {
-          tenantId,
+        branchId_payrollMonth: {
           branchId: query.branchId,
           payrollMonth: monthStringToDate(query.payrollMonth),
         },
@@ -149,12 +147,11 @@ export class PayrollService {
    */
   async previewRun(query: GetPayrollRunQuery): Promise<PayrollRunPreview> {
     this.assertBranchAccess(query.branchId);
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const payrollMonth = monthStringToDate(query.payrollMonth);
     const bounds = payrollMonthBounds(query.payrollMonth);
 
     const run = await this.prisma.client.payrollRun.findUnique({
-      where: { tenantId_branchId_payrollMonth: { tenantId, branchId: query.branchId, payrollMonth } },
+      where: { branchId_payrollMonth: { branchId: query.branchId, payrollMonth } },
     });
 
     const existingUserIds = run
@@ -170,7 +167,7 @@ export class PayrollService {
       where: {
         status: "active",
         deletedAt: null,
-        staffProfile: {
+        employeeProfile: {
           primaryBranchId: query.branchId,
           OR: [{ joiningDate: null }, { joiningDate: { lte: bounds.end } }],
         },
@@ -200,57 +197,56 @@ export class PayrollService {
 
   /**
    * First call for a (branch, month): generates the run + one payroll_item
-   * per eligible staff member. A later call for the SAME (branch, month)
+   * per eligible employee. A later call for the SAME (branch, month)
    * doesn't recreate the run — it runs an additive sync pass instead,
-   * adding items only for staff who became newly eligible since generation
+   * adding items only for employees who became newly eligible since generation
    * (e.g. a branch reassignment after the fact). Existing items are never
    * touched, recomputed, or removed — see docs/MODULES/payroll.md
-   * "Regeneration". Both paths share `createItemForStaff` for the per-staff
+   * "Regeneration". Both paths share `createItemForEmployee` for the per-employee
    * snapshot logic.
    */
   async generateRun(input: GeneratePayrollRunInput): Promise<PayrollRunResponse> {
     this.assertBranchAccess(input.branchId);
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
     const payrollMonth = monthStringToDate(input.payrollMonth);
     const bounds = payrollMonthBounds(input.payrollMonth);
 
     const existing = await this.prisma.client.payrollRun.findUnique({
-      where: { tenantId_branchId_payrollMonth: { tenantId, branchId: input.branchId, payrollMonth } },
+      where: { branchId_payrollMonth: { branchId: input.branchId, payrollMonth } },
     });
     if (existing) {
-      await this.syncNewStaffIntoRun(existing.id, tenantId, input.branchId, existing.currency, bounds);
+      await this.syncNewEmployeesIntoRun(existing.id, input.branchId, existing.currency, bounds);
       return toRunResponse(existing);
     }
 
-    const staff = await this.prisma.client.user.findMany({
+    const employees = await this.prisma.client.user.findMany({
       where: {
         status: "active",
         deletedAt: null,
-        staffProfile: {
+        employeeProfile: {
           primaryBranchId: input.branchId,
           OR: [{ joiningDate: null }, { joiningDate: { lte: bounds.end } }],
         },
       },
-      select: ELIGIBLE_STAFF_SELECT,
+      select: ELIGIBLE_EMPLOYEE_SELECT,
     });
-    if (staff.length === 0) {
+    if (employees.length === 0) {
       throw new ConflictException({
-        code: ERROR_CODES.PAYROLL_NO_ELIGIBLE_STAFF,
-        message: "No eligible staff found for this branch and month",
+        code: ERROR_CODES.PAYROLL_NO_ELIGIBLE_EMPLOYEES,
+        message: "No eligible employees found for this branch and month",
       });
     }
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const branch = await tx.branch.findFirstOrThrow({ where: { id: input.branchId } });
 
       const run = await tx.payrollRun.create({
-        data: { tenantId, branchId: input.branchId, payrollMonth, currency: branch.currency, generatedBy: userId },
+        data: { branchId: input.branchId, payrollMonth, currency: branch.currency, generatedBy: userId },
       });
 
-      for (const s of staff) {
-        if (!s.staffProfile) continue;
-        await this.createItemForStaff(tx, tenantId, run.id, branch.currency, s.id, s.staffProfile, bounds);
+      for (const e of employees) {
+        if (!e.employeeProfile) continue;
+        await this.createItemForEmployee(tx, run.id, branch.currency, e.id, e.employeeProfile, bounds);
       }
 
       await this.audit.log(
@@ -258,7 +254,7 @@ export class PayrollService {
           action: "payroll_run.generated",
           entityType: "payroll_run",
           entityId: run.id,
-          after: { branchId: input.branchId, payrollMonth: input.payrollMonth, staffCount: staff.length },
+          after: { branchId: input.branchId, payrollMonth: input.payrollMonth, employeeCount: employees.length },
         },
         tx,
       );
@@ -268,17 +264,16 @@ export class PayrollService {
   }
 
   /**
-   * Additive sync for an already-generated run: adds payroll_items for staff
+   * Additive sync for an already-generated run: adds payroll_items for employees
    * newly eligible for this branch since generation. One transaction PER
-   * staff member (not one shared transaction for the batch) — Postgres
+   * employee (not one shared transaction for the batch) — Postgres
    * aborts an entire transaction on its first error, so a shared transaction
    * would let one concurrent-sync race (P2002 on the unique
-   * (payrollRunId, userId) pair) wipe out unrelated staff in the same pass.
-   * Per-staff transactions mean that race only affects the one colliding row.
+   * (payrollRunId, userId) pair) wipe out unrelated employees in the same pass.
+   * Per-employee transactions mean that race only affects the one colliding row.
    */
-  private async syncNewStaffIntoRun(
+  private async syncNewEmployeesIntoRun(
     runId: string,
-    tenantId: string,
     branchId: string,
     currency: string,
     bounds: PayrollMonthBounds,
@@ -290,25 +285,25 @@ export class PayrollService {
       })
     ).map((i) => i.userId);
 
-    const staff = await this.prisma.client.user.findMany({
+    const employees = await this.prisma.client.user.findMany({
       where: {
         status: "active",
         deletedAt: null,
-        staffProfile: {
+        employeeProfile: {
           primaryBranchId: branchId,
           OR: [{ joiningDate: null }, { joiningDate: { lte: bounds.end } }],
         },
         id: { notIn: existingUserIds },
       },
-      select: ELIGIBLE_STAFF_SELECT,
+      select: ELIGIBLE_EMPLOYEE_SELECT,
     });
 
     let addedCount = 0;
-    for (const s of staff) {
-      if (!s.staffProfile) continue;
+    for (const e of employees) {
+      if (!e.employeeProfile) continue;
       try {
-        await this.prisma.withTenantTx((tx) =>
-          this.createItemForStaff(tx, tenantId, runId, currency, s.id, s.staffProfile!, bounds),
+        await this.prisma.client.$transaction((tx) =>
+          this.createItemForEmployee(tx, runId, currency, e.id, e.employeeProfile!, bounds),
         );
         addedCount++;
       } catch (err) {
@@ -328,7 +323,7 @@ export class PayrollService {
   }
 
   /**
-   * Proration + deduction math shared by `createItemForStaff` (new item) and `recomputeItem`
+   * Proration + deduction math shared by `createItemForEmployee` (new item) and `recomputeItem`
    * (refresh an existing Pending item from current data). Base salary, allowances, and statutory
    * deductions are all prorated by `paidDays`/totalDays for a mid-month joiner
    * (docs/MODULES/payroll.md) — each component line is prorated INDIVIDUALLY, then summed, so the
@@ -345,11 +340,11 @@ export class PayrollService {
    * leave (paid or unpaid) gets the `on_leave` AttendanceDay status, never `absent`, so these two
    * never double-count the same calendar day.
    *
-   * Returns `null` when the staff member isn't eligible for this month at all (joined after it
+   * Returns `null` when the employee isn't eligible for this month at all (joined after it
    * ends) — callers skip/no-op in that case.
    */
   private async computeFigures(
-    profile: EligibleStaffProfile,
+    profile: EligibleEmployeeProfile,
     bounds: PayrollMonthBounds,
   ): Promise<{
     paidDays: number;
@@ -376,10 +371,10 @@ export class PayrollService {
     const prorate = (amountMinor: bigint) => BigInt(prorateAmount(Number(amountMinor), paidDays, bounds.totalDays));
 
     // Percentage-basis components (e.g. "ESI 12%") are never trusted from the stored
-    // `amountMinor` snapshot (a one-time client-side convenience, staff.staff-form.tsx — stale
-    // the moment base salary changes) — recomputed live from the CURRENT base salary every time,
-    // same as Absence/Leave Deduction. Fixed-amount components use the stored value as before.
-    const resolveAmount = (c: EligibleStaffProfile["payrollComponents"][number]) =>
+    // `amountMinor` snapshot (a one-time client-side convenience, employees' employee-form.tsx —
+    // stale the moment base salary changes) — recomputed live from the CURRENT base salary every
+    // time, same as Absence/Leave Deduction. Fixed-amount components use the stored value as before.
+    const resolveAmount = (c: EligibleEmployeeProfile["payrollComponents"][number]) =>
       BigInt(
         resolveComponentAmountMinor(
           {
@@ -420,18 +415,17 @@ export class PayrollService {
   }
 
   /**
-   * Snapshots one staff member's salary/components into a new payroll_item. Shared by generate +
-   * sync. Staff who haven't joined by the end of this month are excluded upstream (the
+   * Snapshots one employee's salary/components into a new payroll_item. Shared by generate +
+   * sync. Employees who haven't joined by the end of this month are excluded upstream (the
    * eligibility `where` clauses), so `computeFigures` returning `null` here is defensive, not
    * expected.
    */
-  private async createItemForStaff(
+  private async createItemForEmployee(
     tx: TxClient,
-    tenantId: string,
     runId: string,
     currency: string,
-    staffUserId: string,
-    profile: EligibleStaffProfile,
+    employeeUserId: string,
+    profile: EligibleEmployeeProfile,
     bounds: PayrollMonthBounds,
   ): Promise<void> {
     const figures = await this.computeFigures(profile, bounds);
@@ -447,10 +441,9 @@ export class PayrollService {
 
     await tx.payrollItem.create({
       data: {
-        tenantId,
         payrollRunId: runId,
-        userId: staffUserId,
-        staffProfileId: profile.id,
+        userId: employeeUserId,
+        employeeProfileId: profile.id,
         currency,
         baseSalaryMinor: figures.baseSalaryMinor,
         allowancesTotalMinor: figures.allowancesTotal,
@@ -464,7 +457,6 @@ export class PayrollService {
         paidDays: figures.paidDays,
         components: {
           create: figures.components.map((c) => ({
-            tenantId,
             category: c.category,
             nameEn: c.nameEn,
             nameAr: c.nameAr,
@@ -559,9 +551,8 @@ export class PayrollService {
         message: "Payroll item cannot be edited in its current status",
       });
     }
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
 
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       const data: Prisma.PayrollItemUpdateInput = {};
       if (input.allowancesTotalMinor != null) {
         data.allowancesTotalMinor = BigInt(input.allowancesTotalMinor);
@@ -579,10 +570,10 @@ export class PayrollService {
         data.leaveDeductionMinor = BigInt(input.leaveDeductionMinor);
       }
       if (input.additions) {
-        await this.replaceAdjustments(tx, tenantId, itemId, "addition", input.additions);
+        await this.replaceAdjustments(tx, itemId, "addition", input.additions);
       }
       if (input.extraDeductions) {
-        await this.replaceAdjustments(tx, tenantId, itemId, "deduction", input.extraDeductions);
+        await this.replaceAdjustments(tx, itemId, "deduction", input.extraDeductions);
       }
       if (Object.keys(data).length > 0) {
         await tx.payrollItem.update({ where: { id: itemId }, data });
@@ -607,7 +598,7 @@ export class PayrollService {
   /**
    * Recomputes the SYSTEM-COMPUTED figures (paidDays, base salary, allowances/statutory
    * breakdown+totals, Absence Deduction, Leave Deduction) for a still-Pending item from CURRENT
-   * staff profile/leave/attendance data — the same formula `createItemForStaff` uses at
+   * employee profile/leave/attendance data — the same formula `createItemForEmployee` uses at
    * generation time, just updating the existing row instead of inserting one. Manual-only fields
    * (`otherDeductionMinor`, ad-hoc additions/extraDeductions) are left untouched — those are
    * orthogonal admin overrides, not part of this formula.
@@ -625,21 +616,20 @@ export class PayrollService {
         message: "Only a Pending payroll item can be recomputed",
       });
     }
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
 
-    const staffRow = await this.prisma.client.user.findUniqueOrThrow({
+    const employeeRow = await this.prisma.client.user.findUniqueOrThrow({
       where: { id: item.userId },
-      select: ELIGIBLE_STAFF_SELECT,
+      select: ELIGIBLE_EMPLOYEE_SELECT,
     });
-    if (!staffRow.staffProfile) return this.getItemDetail(itemId);
+    if (!employeeRow.employeeProfile) return this.getItemDetail(itemId);
 
     const bounds = payrollMonthBounds(dateToMonthString(item.payrollRun.payrollMonth));
-    const figures = await this.computeFigures(staffRow.staffProfile, bounds);
+    const figures = await this.computeFigures(employeeRow.employeeProfile, bounds);
     // No longer eligible for this month (e.g. Date of Join edited past month-end) — leave the
     // existing item frozen as-is, same "never removed retroactively" rule as docs/MODULES/payroll.md §10.
     if (!figures) return this.getItemDetail(itemId);
 
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       await tx.payrollItem.update({
         where: { id: itemId },
         data: {
@@ -654,7 +644,6 @@ export class PayrollService {
           components: {
             deleteMany: {},
             create: figures.components.map((c) => ({
-              tenantId,
               category: c.category,
               nameEn: c.nameEn,
               nameAr: c.nameAr,
@@ -700,7 +689,6 @@ export class PayrollService {
 
   private async replaceAdjustments(
     tx: TxClient,
-    tenantId: string,
     itemId: string,
     type: PayrollAdjustmentType,
     rows: { labelEn: string; labelAr?: string | null; amountMinor: number }[],
@@ -709,7 +697,6 @@ export class PayrollService {
     if (rows.length === 0) return;
     await tx.payrollItemAdjustment.createMany({
       data: rows.map((r) => ({
-        tenantId,
         payrollItemId: itemId,
         type,
         labelEn: r.labelEn,
@@ -775,7 +762,7 @@ export class PayrollService {
    * `resolveBulkItemIds`/`sourceStatusesForTab` (those are transition-specific); `selectAll` here
    * always means "every Pending item in this run" since the Pending tab never shows any other
    * status. Each item recomputes in its own call/transaction (not one shared transaction — the
-   * per-staff leave/attendance lookups can't be batched into a single UPDATE). If one item raced
+   * per-employee leave/attendance lookups can't be batched into a single UPDATE). If one item raced
    * to a non-Pending status between selection and execution, `recomputeItem` throws
    * `PAYROLL_ITEM_LOCKED` for just that item — skip it and keep going rather than aborting the
    * whole batch over one stale row.
@@ -841,7 +828,6 @@ export class PayrollService {
     runId?: string,
   ): Promise<void> {
     const actorId = this.cls.get(CLS_KEYS.userId) as string;
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const targetStatus = ACTION_TARGET[action];
 
     const items = await this.prisma.client.payrollItem.findMany({
@@ -868,7 +854,7 @@ export class PayrollService {
       }
     }
 
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       const first = items[0]!;
       let batchId: string | undefined;
       if (action === "approve" || action === "reject") {
@@ -876,7 +862,6 @@ export class PayrollService {
         const count = await tx.payrollActionBatch.count({ where: { payrollRunId: anyRunId } });
         const batch = await tx.payrollActionBatch.create({
           data: {
-            tenantId,
             branchId: first.payrollRun.branchId,
             payrollRunId: anyRunId,
             action,
@@ -981,11 +966,11 @@ function toRunResponse(run: {
 function toItemSummary(item: ItemRow): PayrollItemSummary {
   return {
     id: item.id,
-    staff: {
+    employee: {
       id: item.user.id,
       name: item.user.name,
       role: item.user.role?.nameEn ?? null,
-      joiningDate: item.user.staffProfile?.joiningDate ?? null,
+      joiningDate: item.user.employeeProfile?.joiningDate ?? null,
       branchNameEn: item.payrollRun.branch.nameEn,
       branchNameAr: item.payrollRun.branch.nameAr,
     },

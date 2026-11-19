@@ -38,7 +38,7 @@ export class PayrollController {
 
   /**
    * Idempotent for the run itself — returns the existing run for (branch,
-   * month) if one exists, but also syncs in any staff newly eligible for
+   * month) if one exists, but also syncs in any employee newly eligible for
    * this branch since the run was first generated (see PayrollService).
    */
   @Post("runs")

@@ -17,22 +17,13 @@ import { PermissionSetModule } from "./common/permission-set.module";
 import { DatabaseModule } from "./database/database.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
 import { AuditModule } from "./modules/audit/audit.module";
-import { AppointmentsModule } from "./modules/appointments/appointments.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BranchesModule } from "./modules/branches/branches.module";
-import { CustomersModule } from "./modules/customers/customers.module";
-import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { EmployeesModule } from "./modules/employees/employees.module";
 import { HealthModule } from "./modules/health/health.module";
-import { InventoryModule } from "./modules/inventory/inventory.module";
-import { PosModule } from "./modules/pos/pos.module";
-import { WalkInsModule } from "./modules/walk-ins/walk-ins.module";
 import { LeaveModule } from "./modules/leave/leave.module";
 import { PayrollModule } from "./modules/payroll/payroll.module";
-import { ServicesModule } from "./modules/services/services.module";
 import { SettingsModule } from "./modules/settings/settings.module";
-import { TaxesModule } from "./modules/taxes/taxes.module";
-import { TenantsModule } from "./modules/tenants/tenants.module";
-import { UsersModule } from "./modules/users/users.module";
 
 @Module({
   imports: [
@@ -61,21 +52,12 @@ import { UsersModule } from "./modules/users/users.module";
     PermissionSetModule,
     AuditModule,
     AuthModule,
-    TenantsModule,
-    UsersModule,
+    EmployeesModule,
     BranchesModule,
-    CustomersModule,
-    ServicesModule,
-    AppointmentsModule,
-    WalkInsModule,
-    InventoryModule,
-    PosModule,
     SettingsModule,
-    TaxesModule,
     PayrollModule,
     AttendanceModule,
     LeaveModule,
-    DashboardModule,
     HealthModule,
   ],
   providers: [

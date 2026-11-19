@@ -241,7 +241,7 @@ describe("payroll", () => {
       .set(auth(tenant.accessToken))
       .send({ branchId: branchBId, payrollMonth: "2026-09" })
       .expect(409);
-    expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_STAFF");
+    expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_EMPLOYEES");
 
     const runA = await request()
       .post("/api/v1/payroll/runs")
@@ -591,7 +591,7 @@ describe("payroll", () => {
       .set(auth(tenant.accessToken))
       .send({ branchId: branchBId, payrollMonth: excludeMonth })
       .expect(409);
-    expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_STAFF");
+    expect(blocked.body.code).toBe("PAYROLL_NO_ELIGIBLE_EMPLOYEES");
 
     // Add an eligible staff member alongside the not-yet-joined one so the run can be generated,
     // then confirm the future joiner is absent from every tab.

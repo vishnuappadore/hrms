@@ -22,7 +22,8 @@ export class PayslipPdfService implements OnModuleDestroy {
   constructor(private readonly prisma: PrismaService) {}
 
   async render(detail: PayrollItemDetail, locale: "en" | "ar"): Promise<Buffer> {
-    const tenant = await this.prisma.client.tenant.findFirst({
+    const company = await this.prisma.client.companySettings.findUnique({
+      where: { id: "default" },
       select: { name: true, useWesternNumeralsInArabic: true },
     });
     const browser = await this.getBrowser();
@@ -32,8 +33,8 @@ export class PayslipPdfService implements OnModuleDestroy {
         renderPayslipHtml(
           detail,
           locale,
-          tenant?.name ?? "Keystone HR",
-          tenant?.useWesternNumeralsInArabic ?? true,
+          company?.name ?? "Keystone HR",
+          company?.useWesternNumeralsInArabic ?? true,
         ),
         { waitUntil: "load" },
       );

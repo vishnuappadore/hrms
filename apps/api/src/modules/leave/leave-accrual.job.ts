@@ -1,5 +1,4 @@
 import { Prisma, type LeaveCreditPolicy } from "@prisma/client";
-import type { AuthPrismaService } from "../../database/auth-prisma.service";
 import type { PrismaService, TxClient } from "../../database/prisma.service";
 import { ensureYearBalance, round2 } from "./leave-balance.util";
 
@@ -43,26 +42,24 @@ function isAccrualDue(policy: LeaveCreditPolicy, lastAccruedAt: Date | null, tod
 }
 
 /**
- * Credits ONE staff member's ONE leave-type balance if due, given today's date — the per-row
+ * Credits ONE employee's ONE leave-type balance if due, given today's date — the per-row
  * body shared by the nightly job below and `LeaveTypesService.create()` (which calls this once,
- * eagerly, for every currently-eligible staff member right when a leave type is created, so a
+ * eagerly, for every currently-eligible employee right when a leave type is created, so a
  * new type doesn't sit at `accrued: 0` until the next nightly run).
  */
 export async function accrueIfDue(
   tx: TxClient,
   params: {
-    tenantId: string;
-    staffProfileId: string;
+    employeeProfileId: string;
     joiningDate: Date | null;
     leaveType: LeaveTypeForAccrual;
     today: Date;
   },
 ): Promise<void> {
-  const { tenantId, staffProfileId, joiningDate, leaveType, today } = params;
+  const { employeeProfileId, joiningDate, leaveType, today } = params;
   const year = today.getUTCFullYear();
   const balance = await ensureYearBalance(tx, {
-    tenantId,
-    staffProfileId,
+    employeeProfileId,
     leaveTypeId: leaveType.id,
     year,
     allowCarryForward: leaveType.allowCarryForward,
@@ -84,44 +81,37 @@ export async function accrueIfDue(
 }
 
 /**
- * Daily scheduled job (worker.ts's "scheduled" queue) crediting every active staff member's
+ * Daily scheduled job (worker.ts's "scheduled" queue) crediting every active employee's
  * leave balance per their leave type's credit policy. Exported as a plain function so it's
  * callable directly from integration tests without going through BullMQ.
  */
-export async function runLeaveAccrualJob(prisma: PrismaService, authPrisma: AuthPrismaService): Promise<void> {
+export async function runLeaveAccrualJob(prisma: PrismaService): Promise<void> {
   const today = dateOnlyUtc(new Date());
-  const tenants = await authPrisma.tenant.findMany({ where: { status: "active" }, select: { id: true } });
+  const leaveTypes = await prisma.client.leaveType.findMany({ where: { isActive: true } });
+  if (leaveTypes.length === 0) return;
 
-  for (const tenant of tenants) {
-    await prisma.runWithTenant(tenant.id, async () => {
-      const leaveTypes = await prisma.client.leaveType.findMany({ where: { isActive: true } });
-      if (leaveTypes.length === 0) return;
+  // A null joiningDate means "always eligible" everywhere else in this codebase (see
+  // money.ts's paidDaysForJoin) — `{ lte: today }` alone would exclude those rows, since SQL
+  // NULL <= today is never true.
+  const employees = await prisma.client.employeeProfile.findMany({
+    where: {
+      OR: [{ joiningDate: null }, { joiningDate: { lte: today } }],
+      user: { status: "active", deletedAt: null },
+    },
+    select: { id: true, joiningDate: true },
+  });
+  if (employees.length === 0) return;
 
-      // A null joiningDate means "always eligible" everywhere else in this codebase (see
-      // money.ts's paidDaysForJoin) — `{ lte: today }` alone would exclude those rows, since SQL
-      // NULL <= today is never true.
-      const staff = await prisma.client.staffProfile.findMany({
-        where: {
-          OR: [{ joiningDate: null }, { joiningDate: { lte: today } }],
-          user: { status: "active", deletedAt: null },
-        },
-        select: { id: true, joiningDate: true },
-      });
-      if (staff.length === 0) return;
-
-      for (const type of leaveTypes) {
-        for (const member of staff) {
-          await prisma.withTenantTx((tx) =>
-            accrueIfDue(tx, {
-              tenantId: tenant.id,
-              staffProfileId: member.id,
-              joiningDate: member.joiningDate,
-              leaveType: type,
-              today,
-            }),
-          );
-        }
-      }
-    });
+  for (const type of leaveTypes) {
+    for (const member of employees) {
+      await prisma.client.$transaction((tx) =>
+        accrueIfDue(tx, {
+          employeeProfileId: member.id,
+          joiningDate: member.joiningDate,
+          leaveType: type,
+          today,
+        }),
+      );
+    }
   }
 }

@@ -12,13 +12,13 @@ import {
   assertMinorUnits,
   ERROR_CODES,
   type AuthUser,
-  type CreateStaffInput,
+  type CreateEmployeeInput,
+  type Employee as EmployeeResponse,
+  type EmployeePayrollComponentInput,
   type ListUsersQuery,
   type Paginated,
   type PayrollComponentCategory,
-  type Staff as StaffResponse,
-  type StaffPayrollComponentInput,
-  type UpdateStaffInput,
+  type UpdateEmployeeInput,
   type User as UserResponse,
   resolveComponentAmountMinor,
 } from "@keystonehr/shared";
@@ -40,19 +40,19 @@ const USER_SELECT = {
   lastLoginAt: true,
   createdAt: true,
   updatedAt: true,
-  staffProfile: { select: { mobile: true } },
+  employeeProfile: { select: { mobile: true } },
 } satisfies Prisma.UserSelect;
 
 type UserRow = Prisma.UserGetPayload<{ select: typeof USER_SELECT }>;
 
 /** getById/create/update also need the employment + salary/commission profile. */
-const STAFF_SELECT = {
+const EMPLOYEE_SELECT = {
   ...USER_SELECT,
-  staffProfile: {
+  employeeProfile: {
     select: {
       mobile: true,
       gender: true,
-      staffStatus: true,
+      employeeStatus: true,
       primaryBranchId: true,
       employmentType: true,
       joiningDate: true,
@@ -72,13 +72,13 @@ const STAFF_SELECT = {
   },
 } satisfies Prisma.UserSelect;
 
-type StaffRow = Prisma.UserGetPayload<{ select: typeof STAFF_SELECT }>;
+type EmployeeRow = Prisma.UserGetPayload<{ select: typeof EMPLOYEE_SELECT }>;
 
-/** Partial-update payloads only touch the staff profile when one of these keys is present. */
-const STAFF_PROFILE_KEYS = [
+/** Partial-update payloads only touch the employee profile when one of these keys is present. */
+const EMPLOYEE_PROFILE_KEYS = [
   "mobile",
   "gender",
-  "staffStatus",
+  "employeeStatus",
   "primaryBranchId",
   "employmentType",
   "joiningDate",
@@ -88,10 +88,10 @@ const STAFF_PROFILE_KEYS = [
   "commissionRatePct",
   "allowances",
   "deductions",
-] as const satisfies readonly (keyof UpdateStaffInput)[];
+] as const satisfies readonly (keyof UpdateEmployeeInput)[];
 
 @Injectable()
-export class UsersService {
+export class EmployeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -110,15 +110,14 @@ export class UsersService {
           },
         },
         branchAssignments: { select: { branchId: true } },
-        tenant: { select: { defaultCurrency: true } },
       },
     });
     if (!user) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "User not found" });
     }
+    const company = await this.prisma.client.companySettings.findUnique({ where: { id: "default" } });
     return {
       id: user.id,
-      tenantId: user.tenantId,
       name: user.name,
       email: user.email,
       username: user.username,
@@ -129,7 +128,7 @@ export class UsersService {
       allBranches: user.allBranches,
       branchIds: user.branchAssignments.map((a) => a.branchId),
       locale: user.locale === "ar" ? "ar" : "en",
-      currency: user.tenant.defaultCurrency,
+      currency: company?.defaultCurrency ?? "AED",
     };
   }
 
@@ -144,13 +143,13 @@ export class UsersService {
 
     // Every OR-shaped condition goes into its own AND entry: spreading several `{ OR }` objects
     // into one where-clause makes the later key silently overwrite the earlier one (a search used
-    // to replace the branch-scope OR, leaking staff from other branches).
+    // to replace the branch-scope OR, leaking employees from other branches).
     const and: Prisma.UserWhereInput[] = [];
     if (effective) {
       and.push({ OR: [{ allBranches: true }, { branchAssignments: { some: { branchId: { in: effective } } } }] });
     }
     if (query.branchId) {
-      // All-branch staff (admins, ops managers) work at every branch, so a branch filter includes them.
+      // All-branch employees (admins, HR managers) work at every branch, so a branch filter includes them.
       and.push({ OR: [{ allBranches: true }, { branchAssignments: { some: { branchId: query.branchId } } }] });
     }
     if (query.search) {
@@ -188,20 +187,19 @@ export class UsersService {
     };
   }
 
-  async getById(id: string): Promise<StaffResponse> {
+  async getById(id: string): Promise<EmployeeResponse> {
     const user = await this.prisma.client.user.findFirst({
       where: { id, deletedAt: null },
-      select: STAFF_SELECT,
+      select: EMPLOYEE_SELECT,
     });
     if (!user) {
       throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "User not found" });
     }
-    this.assertStaffBranchAccess(user);
-    return toStaffResponse(user);
+    this.assertEmployeeBranchAccess(user);
+    return toEmployeeResponse(user);
   }
 
-  async create(input: CreateStaffInput): Promise<StaffResponse> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
+  async create(input: CreateEmployeeInput): Promise<EmployeeResponse> {
     const branchIds = input.allBranches ? [] : input.branchIds;
     await this.assertRoleExists(input.roleId);
     await this.assertBranchesExist(branchIds);
@@ -216,10 +214,9 @@ export class UsersService {
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
 
     try {
-      return await this.prisma.withTenantTx(async (tx) => {
+      return await this.prisma.client.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
-            tenantId,
             name: input.name,
             username: input.username,
             email: input.email ? input.email.toLowerCase() : null,
@@ -229,18 +226,17 @@ export class UsersService {
             roleId: input.roleId,
             allBranches: input.allBranches,
             branchAssignments: {
-              create: branchIds.map((branchId) => ({ tenantId, branchId })),
+              create: branchIds.map((branchId) => ({ branchId })),
             },
           },
         });
 
-        const profile = await tx.staffProfile.create({
+        const profile = await tx.employeeProfile.create({
           data: {
-            tenantId,
             userId: user.id,
             mobile: input.mobile ?? null,
             gender: input.gender ?? null,
-            staffStatus: input.staffStatus,
+            employeeStatus: input.employeeStatus,
             primaryBranchId: input.primaryBranchId ?? null,
             employmentType: input.employmentType ?? null,
             joiningDate: input.joiningDate ?? null,
@@ -250,16 +246,13 @@ export class UsersService {
             commissionRatePct: input.commissionRatePct ?? null,
           },
         });
-        await this.createPayrollComponentRows(tx, tenantId, profile.id, [
-          ...input.allowances,
-          ...input.deductions,
-        ]);
+        await this.createPayrollComponentRows(tx, profile.id, [...input.allowances, ...input.deductions]);
 
         const full = await tx.user.findUniqueOrThrow({
           where: { id: user.id },
-          select: STAFF_SELECT,
+          select: EMPLOYEE_SELECT,
         });
-        const response = toStaffResponse(full);
+        const response = toEmployeeResponse(full);
         await this.audit.log(
           { action: "user.created", entityType: "user", entityId: user.id, after: response },
           tx,
@@ -271,10 +264,9 @@ export class UsersService {
     }
   }
 
-  async update(id: string, input: UpdateStaffInput): Promise<StaffResponse> {
+  async update(id: string, input: UpdateEmployeeInput): Promise<EmployeeResponse> {
     const before = await this.getById(id);
     const currentUserId = this.cls.get(CLS_KEYS.userId) as string;
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
 
     // Lockout prevention: nobody deactivates or re-roles their own account.
     if (
@@ -326,7 +318,7 @@ export class UsersService {
       if (input.reportingManagerId === id) {
         throw new BadRequestException({
           code: ERROR_CODES.VALIDATION_FAILED,
-          message: "A staff member cannot report to themselves",
+          message: "An employee cannot report to themselves",
         });
       }
       await this.assertReportingManagerValid(input.reportingManagerId);
@@ -339,10 +331,10 @@ export class UsersService {
     }
 
     const deactivating = input.status === "inactive" && before.status !== "inactive";
-    const touchesProfile = STAFF_PROFILE_KEYS.some((key) => input[key] !== undefined);
+    const touchesProfile = EMPLOYEE_PROFILE_KEYS.some((key) => input[key] !== undefined);
 
     try {
-      return await this.prisma.withTenantTx(async (tx) => {
+      return await this.prisma.client.$transaction(async (tx) => {
         await tx.user.update({
           where: { id },
           data: {
@@ -359,7 +351,7 @@ export class UsersService {
               ? {
                   branchAssignments: {
                     deleteMany: {},
-                    create: nextBranchIds.map((branchId) => ({ tenantId, branchId })),
+                    create: nextBranchIds.map((branchId) => ({ branchId })),
                   },
                 }
               : {}),
@@ -367,14 +359,13 @@ export class UsersService {
         });
 
         if (touchesProfile) {
-          const profile = await tx.staffProfile.upsert({
+          const profile = await tx.employeeProfile.upsert({
             where: { userId: id },
             create: {
-              tenantId,
               userId: id,
               mobile: input.mobile ?? null,
               gender: input.gender ?? null,
-              staffStatus: input.staffStatus ?? "active",
+              employeeStatus: input.employeeStatus ?? "active",
               primaryBranchId: input.primaryBranchId ?? null,
               employmentType: input.employmentType ?? null,
               joiningDate: input.joiningDate ?? null,
@@ -386,7 +377,7 @@ export class UsersService {
             update: {
               ...(input.mobile !== undefined ? { mobile: input.mobile } : {}),
               ...(input.gender !== undefined ? { gender: input.gender } : {}),
-              ...(input.staffStatus !== undefined ? { staffStatus: input.staffStatus } : {}),
+              ...(input.employeeStatus !== undefined ? { employeeStatus: input.employeeStatus } : {}),
               ...(input.primaryBranchId !== undefined
                 ? { primaryBranchId: input.primaryBranchId }
                 : {}),
@@ -410,22 +401,10 @@ export class UsersService {
           });
 
           if (input.allowances !== undefined) {
-            await this.replacePayrollComponentRows(
-              tx,
-              tenantId,
-              profile.id,
-              "allowance",
-              input.allowances,
-            );
+            await this.replacePayrollComponentRows(tx, profile.id, "allowance", input.allowances);
           }
           if (input.deductions !== undefined) {
-            await this.replacePayrollComponentRows(
-              tx,
-              tenantId,
-              profile.id,
-              "deduction",
-              input.deductions,
-            );
+            await this.replacePayrollComponentRows(tx, profile.id, "deduction", input.deductions);
           }
         }
 
@@ -437,8 +416,8 @@ export class UsersService {
           });
         }
 
-        const full = await tx.user.findUniqueOrThrow({ where: { id }, select: STAFF_SELECT });
-        const response = toStaffResponse(full);
+        const full = await tx.user.findUniqueOrThrow({ where: { id }, select: EMPLOYEE_SELECT });
+        const response = toEmployeeResponse(full);
         await this.audit.log(
           { action: "user.updated", entityType: "user", entityId: id, before, after: response },
           tx,
@@ -455,7 +434,7 @@ export class UsersService {
     await this.assertCanResetPassword(id);
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
 
-    await this.prisma.withTenantTx(async (tx) => {
+    await this.prisma.client.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { passwordHash } });
       await tx.refreshToken.updateMany({
         where: { userId: id, revokedAt: null },
@@ -467,10 +446,10 @@ export class UsersService {
   }
 
   /**
-   * Resetting a password is an account takeover, so `staff.update` alone is not enough when the
-   * target outranks the actor: only a Super Admin may reset a Super Admin's password, and a
-   * branch-scoped actor may not reset an all-branches account (assertStaffBranchAccess lets those
-   * through for reads). Resetting your own password is always allowed.
+   * Resetting a password is an account takeover, so `employee.update` alone is not enough when
+   * the target outranks the actor: only a Super Admin may reset a Super Admin's password, and a
+   * branch-scoped actor may not reset an all-branches account (assertEmployeeBranchAccess lets
+   * those through for reads). Resetting your own password is always allowed.
    */
   private async assertCanResetPassword(targetId: string): Promise<void> {
     const actorId = this.cls.get(CLS_KEYS.userId) as string;
@@ -494,7 +473,6 @@ export class UsersService {
     }
   }
 
-  /** RLS scopes the lookup, so a foreign tenant's roleId is simply not found. */
   private async assertRoleExists(roleId: string): Promise<void> {
     const role = await this.prisma.client.role.findFirst({ where: { id: roleId } });
     if (!role) {
@@ -540,14 +518,14 @@ export class UsersService {
     }
   }
 
-  private assertStaffBranchAccess(user: { allBranches: boolean; branchAssignments: { branchId: string }[] }): void {
+  private assertEmployeeBranchAccess(user: { allBranches: boolean; branchAssignments: { branchId: string }[] }): void {
     const effective = getEffectiveBranchIds(this.cls);
     if (!effective || user.allBranches) return;
     const allowed = user.branchAssignments.some((a) => effective.includes(a.branchId));
     if (!allowed) {
       throw new ForbiddenException({
         code: ERROR_CODES.BRANCH_ACCESS_DENIED,
-        message: "You do not have access to this staff member",
+        message: "You do not have access to this employee",
       });
     }
   }
@@ -563,7 +541,6 @@ export class UsersService {
     }
   }
 
-  /** RLS scopes the lookup, so a foreign tenant's user id is simply not found. */
   private async assertReportingManagerValid(userId: string): Promise<void> {
     const manager = await this.prisma.client.user.findFirst({
       where: { id: userId, deletedAt: null },
@@ -577,7 +554,7 @@ export class UsersService {
   }
 
   private async assertPayrollComponentsValid(
-    items: StaffPayrollComponentInput[],
+    items: EmployeePayrollComponentInput[],
     expectedCategory: PayrollComponentCategory,
   ): Promise<void> {
     if (items.length === 0) return;
@@ -607,15 +584,13 @@ export class UsersService {
 
   private async createPayrollComponentRows(
     tx: Prisma.TransactionClient,
-    tenantId: string,
-    staffProfileId: string,
-    items: StaffPayrollComponentInput[],
+    employeeProfileId: string,
+    items: EmployeePayrollComponentInput[],
   ): Promise<void> {
     if (items.length === 0) return;
-    await tx.staffPayrollComponent.createMany({
+    await tx.employeePayrollComponent.createMany({
       data: items.map((item) => ({
-        tenantId,
-        staffProfileId,
+        employeeProfileId,
         payrollComponentId: item.payrollComponentId,
         amountMinor: BigInt(item.amountMinor),
       })),
@@ -625,36 +600,35 @@ export class UsersService {
   /** Replaces only the rows for one category, leaving the other list untouched. */
   private async replacePayrollComponentRows(
     tx: Prisma.TransactionClient,
-    tenantId: string,
-    staffProfileId: string,
+    employeeProfileId: string,
     category: PayrollComponentCategory,
-    items: StaffPayrollComponentInput[],
+    items: EmployeePayrollComponentInput[],
   ): Promise<void> {
-    await tx.staffPayrollComponent.deleteMany({
-      where: { staffProfileId, payrollComponent: { category } },
+    await tx.employeePayrollComponent.deleteMany({
+      where: { employeeProfileId, payrollComponent: { category } },
     });
-    await this.createPayrollComponentRows(tx, tenantId, staffProfileId, items);
+    await this.createPayrollComponentRows(tx, employeeProfileId, items);
   }
 }
 
 function toUserResponse(user: UserRow): UserResponse {
-  const { branchAssignments, staffProfile, ...rest } = user;
+  const { branchAssignments, employeeProfile, ...rest } = user;
   return {
     ...rest,
     locale: rest.locale === "ar" ? "ar" : "en",
     branchIds: branchAssignments.map((a) => a.branchId),
-    mobile: staffProfile?.mobile ?? null,
+    mobile: employeeProfile?.mobile ?? null,
   };
 }
 
-function toStaffResponse(user: StaffRow): StaffResponse {
-  const { branchAssignments, staffProfile, ...rest } = user;
-  const baseSalaryMinor = staffProfile ? Number(staffProfile.baseSalaryMinor) : 0;
-  const line = (pc: StaffComponentRow) => toComponentLine(pc, baseSalaryMinor);
-  const allowances = (staffProfile?.payrollComponents ?? [])
+function toEmployeeResponse(user: EmployeeRow): EmployeeResponse {
+  const { branchAssignments, employeeProfile, ...rest } = user;
+  const baseSalaryMinor = employeeProfile ? Number(employeeProfile.baseSalaryMinor) : 0;
+  const line = (pc: EmployeeComponentRow) => toComponentLine(pc, baseSalaryMinor);
+  const allowances = (employeeProfile?.payrollComponents ?? [])
     .filter((pc) => pc.payrollComponent.category === "allowance")
     .map(line);
-  const deductions = (staffProfile?.payrollComponents ?? [])
+  const deductions = (employeeProfile?.payrollComponents ?? [])
     .filter((pc) => pc.payrollComponent.category === "deduction")
     .map(line);
 
@@ -668,17 +642,17 @@ function toStaffResponse(user: StaffRow): StaffResponse {
     ...rest,
     locale: rest.locale === "ar" ? "ar" : "en",
     branchIds: branchAssignments.map((a) => a.branchId),
-    mobile: staffProfile?.mobile ?? null,
-    gender: staffProfile?.gender ?? null,
-    staffStatus: staffProfile?.staffStatus ?? "active",
-    primaryBranchId: staffProfile?.primaryBranchId ?? null,
-    employmentType: staffProfile?.employmentType ?? null,
-    joiningDate: staffProfile?.joiningDate ?? null,
-    reportingManager: staffProfile?.reportingManager ?? null,
+    mobile: employeeProfile?.mobile ?? null,
+    gender: employeeProfile?.gender ?? null,
+    employeeStatus: employeeProfile?.employeeStatus ?? "active",
+    primaryBranchId: employeeProfile?.primaryBranchId ?? null,
+    employmentType: employeeProfile?.employmentType ?? null,
+    joiningDate: employeeProfile?.joiningDate ?? null,
+    reportingManager: employeeProfile?.reportingManager ?? null,
     baseSalaryMinor,
-    commissionEnabled: staffProfile?.commissionEnabled ?? false,
+    commissionEnabled: employeeProfile?.commissionEnabled ?? false,
     commissionRatePct:
-      staffProfile?.commissionRatePct != null ? Number(staffProfile.commissionRatePct) : null,
+      employeeProfile?.commissionRatePct != null ? Number(employeeProfile.commissionRatePct) : null,
     allowances,
     deductions,
     grossSalaryMinor,
@@ -686,7 +660,7 @@ function toStaffResponse(user: StaffRow): StaffResponse {
   };
 }
 
-interface StaffComponentRow {
+interface EmployeeComponentRow {
   amountMinor: bigint;
   payrollComponent: {
     id: string;
@@ -697,12 +671,12 @@ interface StaffComponentRow {
   };
 }
 
-function toComponentLine(pc: StaffComponentRow, baseSalaryMinor: number) {
+function toComponentLine(pc: EmployeeComponentRow, baseSalaryMinor: number) {
   return {
     payrollComponentId: pc.payrollComponent.id,
     nameEn: pc.payrollComponent.nameEn,
     nameAr: pc.payrollComponent.nameAr,
-    // Same resolver as payroll generation, so the Staff screen and the payslip always agree.
+    // Same resolver as payroll generation, so the Employees screen and the payslip always agree.
     amountMinor: resolveComponentAmountMinor(
       {
         basis: pc.payrollComponent.basis,

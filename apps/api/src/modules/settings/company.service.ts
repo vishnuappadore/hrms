@@ -1,42 +1,44 @@
 import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
-import { ClsService } from "nestjs-cls";
-import type { Tenant } from "@prisma/client";
+import type { CompanySettings as CompanySettingsRow } from "@prisma/client";
 import type {
   CompanySettings,
   PresignCompanyLogoInput,
   PresignedCompanyLogoUpload,
   UpdateCompanySettingsInput,
 } from "@keystonehr/shared";
-import { CLS_KEYS } from "../../common/request-context";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { StorageService } from "../storage/storage.service";
+
+const COMPANY_SETTINGS_ID = "default";
 
 @Injectable()
 export class CompanyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly cls: ClsService,
     private readonly storage: StorageService,
   ) {}
 
   async get(): Promise<CompanySettings> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    const tenant = await this.prisma.client.tenant.findUniqueOrThrow({ where: { id: tenantId } });
-    return this.toResponse(tenant);
+    const company = await this.prisma.client.companySettings.findUniqueOrThrow({
+      where: { id: COMPANY_SETTINGS_ID },
+    });
+    return this.toResponse(company);
   }
 
   async update(input: UpdateCompanySettingsInput): Promise<CompanySettings> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    const updated = await this.prisma.withTenantTx(async (tx) => {
-      const updated = await tx.tenant.update({ where: { id: tenantId }, data: input });
+    const updated = await this.prisma.client.$transaction(async (tx) => {
+      const updated = await tx.companySettings.update({
+        where: { id: COMPANY_SETTINGS_ID },
+        data: input,
+      });
       await this.audit.log(
         {
           action: "company_settings.updated",
-          entityType: "tenant",
-          entityId: tenantId,
+          entityType: "company_settings",
+          entityId: COMPANY_SETTINGS_ID,
           after: { name: updated.name },
         },
         tx,
@@ -47,21 +49,20 @@ export class CompanyService {
   }
 
   async presignLogoUpload(input: PresignCompanyLogoInput): Promise<PresignedCompanyLogoUpload> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    const key = `tenants/${tenantId}/company-logo/${randomUUID()}-${input.fileName}`;
+    const key = `company/company-logo/${randomUUID()}-${input.fileName}`;
     const uploadUrl = await this.storage.getUploadUrl(key, input.contentType);
     return { uploadUrl, key };
   }
 
-  private async toResponse(tenant: Tenant): Promise<CompanySettings> {
+  private async toResponse(company: CompanySettingsRow): Promise<CompanySettings> {
     return {
-      name: tenant.name,
-      contactPhone: tenant.contactPhone,
-      contactEmail: tenant.contactEmail,
-      address: tenant.address,
-      taxNumber: tenant.taxNumber,
-      commercialRegistrationNo: tenant.commercialRegistrationNo,
-      logoUrl: tenant.logoKey ? await this.storage.getDownloadUrl(tenant.logoKey) : null,
+      name: company.name,
+      contactPhone: company.contactPhone,
+      contactEmail: company.contactEmail,
+      address: company.address,
+      taxNumber: company.taxNumber,
+      commercialRegistrationNo: company.commercialRegistrationNo,
+      logoUrl: company.logoKey ? await this.storage.getDownloadUrl(company.logoKey) : null,
     };
   }
 }

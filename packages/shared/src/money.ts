@@ -70,10 +70,10 @@ export function percentOf(minorUnits: number, rate: number): number {
 }
 
 /**
- * The effective amount of a staff payroll component. Percentage-of-base components are ALWAYS
- * derived from the CURRENT base salary — the stored per-staff amount is a snapshot that goes stale
+ * The effective amount of an employee payroll component. Percentage-of-base components are ALWAYS
+ * derived from the CURRENT base salary — the stored per-employee amount is a snapshot that goes stale
  * when base salary changes, so it is never trusted. Fixed-amount components use the stored amount.
- * Shared by payroll generation and the staff profile response so they can never disagree.
+ * Shared by payroll generation and the employee profile response so they can never disagree.
  */
 export function resolveComponentAmountMinor(
   component: { basis: string; defaultRatePct: number | null },
@@ -118,7 +118,7 @@ export function payrollMonthBounds(payrollMonth: string): PayrollMonthBounds {
  * their Date of Join. Returns `null` if they join AFTER the month ends — not
  * eligible for that month's payroll at all (they weren't employed yet). A
  * `null` joiningDate, or one on/before the month's first day, means the
- * full month is paid — most staff, and staff without a recorded join date.
+ * full month is paid — most employees, and employees without a recorded join date.
  */
 export function paidDaysForJoin(bounds: PayrollMonthBounds, joiningDate: Date | null): number | null {
   if (!joiningDate) return bounds.totalDays;
@@ -229,7 +229,7 @@ export function computeInvoiceTotals(input: {
 /**
  * Display formatting via Intl. Defaults to Western (latn) digits even in
  * Arabic locales — Arabic-Indic digits on invoices cause reconciliation
- * issues — but a tenant can opt out via `useWesternNumerals` (Settings >
+ * issues — but a company can opt out via `useWesternNumerals` (Settings >
  * General Settings; see `GeneralSettings.useWesternNumeralsInArabic`).
  */
 export function formatMoney(

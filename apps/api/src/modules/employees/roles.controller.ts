@@ -7,9 +7,9 @@ import { CreateRoleDto, UpdateRoleDto } from "./roles.dto";
 export class RolesController {
   constructor(private readonly roles: RolesService) {}
 
-  /** Read-only role listing for the staff form dropdown — no permission data. */
+  /** Read-only role listing for the employee form dropdown — no permission data. */
   @Get()
-  @Permissions("staff.view")
+  @Permissions("employee.view")
   list() {
     return this.roles.listRoles();
   }

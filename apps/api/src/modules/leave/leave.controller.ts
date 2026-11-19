@@ -15,7 +15,7 @@ import {
 export class LeaveController {
   constructor(private readonly leave: LeaveService) {}
 
-  // Static segments before :staffProfileId / :id routes (same NestJS route-order gotcha as Attendance).
+  // Static segments before :employeeProfileId / :id routes (same NestJS route-order gotcha as Attendance).
   @Get("balances/me")
   @Permissions("leave.request")
   getMyBalances() {
@@ -28,10 +28,10 @@ export class LeaveController {
     return this.leave.getKpis(query);
   }
 
-  @Get("balances/:staffProfileId")
+  @Get("balances/:employeeProfileId")
   @Permissions("leave.view")
-  getBalances(@Param("staffProfileId") staffProfileId: string) {
-    return this.leave.getBalancesFor(staffProfileId);
+  getBalances(@Param("employeeProfileId") employeeProfileId: string) {
+    return this.leave.getBalancesFor(employeeProfileId);
   }
 
   @Post("attachments/presign-upload")

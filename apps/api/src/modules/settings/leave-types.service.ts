@@ -1,5 +1,4 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { ClsService } from "nestjs-cls";
 import { Prisma } from "@prisma/client";
 import {
   ERROR_CODES,
@@ -7,7 +6,6 @@ import {
   type LeaveType as LeaveTypeResponse,
   type UpdateLeaveTypeInput,
 } from "@keystonehr/shared";
-import { CLS_KEYS } from "../../common/request-context";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { LeaveService } from "../leave/leave.service";
@@ -19,7 +17,6 @@ export class LeaveTypesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly cls: ClsService,
     private readonly leave: LeaveService,
   ) {}
 
@@ -32,12 +29,11 @@ export class LeaveTypesService {
   }
 
   async create(input: CreateLeaveTypeInput): Promise<LeaveTypeResponse> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     await this.assertNameFree(input.nameEn);
 
-    const created = await this.prisma.withTenantTx(async (tx) => {
+    const created = await this.prisma.client.$transaction(async (tx) => {
       const created = await tx.leaveType.create({
-        data: { ...input, tenantId },
+        data: { ...input },
       });
       await this.audit.log(
         {
@@ -51,7 +47,7 @@ export class LeaveTypesService {
       return created;
     });
 
-    // Credit every currently-eligible staff member immediately, rather than leaving the new
+    // Credit every currently-eligible employee immediately, rather than leaving the new
     // type at accrued: 0 until the next nightly leave-accrual run (docs/MODULES/leave.md).
     if (created.isActive) {
       await this.leave.creditNewLeaveType(created);
@@ -69,7 +65,7 @@ export class LeaveTypesService {
       await this.assertNameFree(input.nameEn, id);
     }
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const updated = await tx.leaveType.update({ where: { id }, data: input });
       await this.audit.log(
         {

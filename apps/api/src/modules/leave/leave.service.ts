@@ -131,16 +131,16 @@ function portionsConflict(a: DayPortion, b: DayPortion): boolean {
   return a === b;
 }
 
-type StaffWithRefs = Prisma.StaffProfileGetPayload<{
+type EmployeeWithRefs = Prisma.EmployeeProfileGetPayload<{
   include: { user: { include: { role: true } }; primaryBranch: true };
 }>;
 
-function staffRef(s: StaffWithRefs): { id: string; name: string; branchName: string | null; role: string | null } {
+function employeeRef(e: EmployeeWithRefs): { id: string; name: string; branchName: string | null; role: string | null } {
   return {
-    id: s.id,
-    name: s.user.name,
-    branchName: s.primaryBranch?.nameEn ?? null,
-    role: s.user.role?.nameEn ?? null,
+    id: e.id,
+    name: e.user.name,
+    branchName: e.primaryBranch?.nameEn ?? null,
+    role: e.user.role?.nameEn ?? null,
   };
 }
 
@@ -149,13 +149,13 @@ function leaveTypeRef(t: { id: string; nameEn: string; nameAr: string; isPaid: b
 }
 
 type RequestWithRefs = Prisma.LeaveRequestGetPayload<{
-  include: { staffProfile: { include: { user: { include: { role: true } }; primaryBranch: true } }; leaveType: true };
+  include: { employeeProfile: { include: { user: { include: { role: true } }; primaryBranch: true } }; leaveType: true };
 }>;
 
 function toSummary(row: RequestWithRefs): LeaveRequestSummary {
   return {
     id: row.id,
-    staff: staffRef(row.staffProfile),
+    employee: employeeRef(row.employeeProfile),
     leaveType: leaveTypeRef(row.leaveType),
     startDate: row.startDate,
     endDate: row.endDate,
@@ -170,7 +170,7 @@ function toSummary(row: RequestWithRefs): LeaveRequestSummary {
 }
 
 const REQUEST_INCLUDE = {
-  staffProfile: { include: { user: { include: { role: true } }, primaryBranch: true } },
+  employeeProfile: { include: { user: { include: { role: true } }, primaryBranch: true } },
   leaveType: true,
 } satisfies Prisma.LeaveRequestInclude;
 
@@ -186,12 +186,11 @@ export class LeaveService {
   // ───────────────────────── Requests ─────────────────────────
 
   async create(input: CreateLeaveRequestInput): Promise<LeaveRequestSummary> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    const staffProfileId = input.staffProfileId ?? (await this.resolveOwnStaffProfile(userId)).id;
-    const staff = await this.loadStaff(staffProfileId);
-    if (input.staffProfileId) this.assertStaffBranchAccess(staff.primaryBranchId);
+    const employeeProfileId = input.employeeProfileId ?? (await this.resolveOwnEmployeeProfile(userId)).id;
+    const employee = await this.loadEmployee(employeeProfileId);
+    if (input.employeeProfileId) this.assertEmployeeBranchAccess(employee.primaryBranchId);
 
     const leaveType = await this.prisma.client.leaveType.findUnique({ where: { id: input.leaveTypeId } });
     if (!leaveType || !leaveType.isActive) {
@@ -217,20 +216,19 @@ export class LeaveService {
         message: `This leave type requires at least ${leaveType.minimumNoticeDays} day(s) notice`,
       });
     }
-    if (!staff.primaryBranchId) {
-      throw new BadRequestException({ code: ERROR_CODES.VALIDATION_FAILED, message: "Staff member has no primary branch" });
+    if (!employee.primaryBranchId) {
+      throw new BadRequestException({ code: ERROR_CODES.VALIDATION_FAILED, message: "Employee has no primary branch" });
     }
 
-    const weeklyOffDays = parseWeeklyOffDays(staff.primaryBranch?.workingHours);
+    const weeklyOffDays = parseWeeklyOffDays(employee.primaryBranch?.workingHours);
     const daysCount = computeDaysCount(input.startDate, input.endDate, leaveType.countMode, weeklyOffDays, input);
     const year = input.startDate.getUTCFullYear();
 
-    return this.prisma.withTenantTx(async (tx) => {
-      await this.assertNoDateConflict(tx, staffProfileId, input);
+    return this.prisma.client.$transaction(async (tx) => {
+      await this.assertNoDateConflict(tx, employeeProfileId, input);
 
       const balance = await ensureYearBalance(tx, {
-        tenantId,
-        staffProfileId,
+        employeeProfileId,
         leaveTypeId: leaveType.id,
         year,
         allowCarryForward: leaveType.allowCarryForward,
@@ -245,10 +243,9 @@ export class LeaveService {
 
       const created = await tx.leaveRequest.create({
         data: {
-          tenantId,
-          staffProfileId,
+          employeeProfileId,
           leaveTypeId: leaveType.id,
-          branchId: staff.primaryBranchId!,
+          branchId: employee.primaryBranchId!,
           startDate: input.startDate,
           endDate: input.endDate,
           startHalfDay: input.startHalfDay,
@@ -292,10 +289,10 @@ export class LeaveService {
   /** Self-scoped equivalent of `list()` — every row belongs to the caller, no branch/search filter. */
   async listMine(query: ListMyLeaveRequestsQuery): Promise<Paginated<LeaveRequestSummary>> {
     const userId = this.cls.get(CLS_KEYS.userId) as string;
-    const { id: staffProfileId } = await this.resolveOwnStaffProfile(userId);
+    const { id: employeeProfileId } = await this.resolveOwnEmployeeProfile(userId);
     const statuses = query.tab ? LEAVE_TAB_STATUSES[query.tab] : undefined;
     const where: Prisma.LeaveRequestWhereInput = {
-      staffProfileId,
+      employeeProfileId,
       ...(statuses ? { status: { in: [...statuses] } } : {}),
     };
 
@@ -333,10 +330,9 @@ export class LeaveService {
   }
 
   async approve(id: string): Promise<LeaveRequestSummary> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const request = await this.loadRequestForTransition(tx, id);
       const leaveType = await tx.leaveType.findUniqueOrThrow({ where: { id: request.leaveTypeId } });
       const now = new Date();
@@ -350,8 +346,7 @@ export class LeaveService {
         });
       } else {
         const balance = await ensureYearBalance(tx, {
-          tenantId,
-          staffProfileId: request.staffProfileId,
+          employeeProfileId: request.employeeProfileId,
           leaveTypeId: leaveType.id,
           year: request.startDate.getUTCFullYear(),
           allowCarryForward: leaveType.allowCarryForward,
@@ -376,7 +371,7 @@ export class LeaveService {
           include: REQUEST_INCLUDE,
         });
 
-        await this.markAttendanceOnLeave(tx, tenantId, request.staffProfileId, request.startDate, request.endDate);
+        await this.markAttendanceOnLeave(tx, request.employeeProfileId, request.startDate, request.endDate);
       }
 
       await this.audit.log(
@@ -395,7 +390,7 @@ export class LeaveService {
   async reject(id: string, input: RejectLeaveRequestInput): Promise<LeaveRequestSummary> {
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       await this.loadRequestForTransition(tx, id);
       const updated = await tx.leaveRequest.update({
         where: { id },
@@ -422,10 +417,9 @@ export class LeaveService {
 
   /** Reverses an approved request's balance deduction and any `on_leave` attendance it set. */
   async cancel(id: string, input: CancelLeaveRequestInput): Promise<LeaveRequestSummary> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const request = await tx.leaveRequest.findUnique({ where: { id } });
       if (!request) {
         throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Leave request not found" });
@@ -440,8 +434,7 @@ export class LeaveService {
       const leaveType = await tx.leaveType.findUniqueOrThrow({ where: { id: request.leaveTypeId } });
 
       const balance = await ensureYearBalance(tx, {
-        tenantId,
-        staffProfileId: request.staffProfileId,
+        employeeProfileId: request.employeeProfileId,
         leaveTypeId: request.leaveTypeId,
         year: request.startDate.getUTCFullYear(),
         allowCarryForward: leaveType.allowCarryForward,
@@ -451,7 +444,7 @@ export class LeaveService {
         where: { id: balance.id },
         data: { used: { decrement: Number(request.daysCount) } },
       });
-      await this.revertAttendanceOnLeave(tx, tenantId, request.staffProfileId, request.startDate, request.endDate);
+      await this.revertAttendanceOnLeave(tx, request.employeeProfileId, request.startDate, request.endDate);
 
       const updated = await tx.leaveRequest.update({
         where: { id },
@@ -484,13 +477,13 @@ export class LeaveService {
   async withdraw(id: string): Promise<LeaveRequestSummary> {
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const request = await tx.leaveRequest.findUnique({ where: { id } });
       if (!request) {
         throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Leave request not found" });
       }
-      const { id: staffProfileId } = await this.resolveOwnStaffProfile(userId);
-      if (request.staffProfileId !== staffProfileId) {
+      const { id: employeeProfileId } = await this.resolveOwnEmployeeProfile(userId);
+      if (request.employeeProfileId !== employeeProfileId) {
         throw new ForbiddenException({
           code: ERROR_CODES.PERMISSION_DENIED,
           message: "You can only cancel your own leave request",
@@ -525,24 +518,22 @@ export class LeaveService {
 
   async getMyBalances(): Promise<LeaveBalanceResponse[]> {
     const userId = this.cls.get(CLS_KEYS.userId) as string;
-    const profile = await this.resolveOwnStaffProfile(userId);
+    const profile = await this.resolveOwnEmployeeProfile(userId);
     return this.getBalancesFor(profile.id);
   }
 
-  async getBalancesFor(staffProfileId: string): Promise<LeaveBalanceResponse[]> {
-    const staff = await this.loadStaff(staffProfileId);
-    this.assertStaffBranchAccess(staff.primaryBranchId);
+  async getBalancesFor(employeeProfileId: string): Promise<LeaveBalanceResponse[]> {
+    const employee = await this.loadEmployee(employeeProfileId);
+    this.assertEmployeeBranchAccess(employee.primaryBranchId);
 
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const year = todayUtc().getUTCFullYear();
     const types = await this.prisma.client.leaveType.findMany({ where: { isActive: true } });
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const rows: LeaveBalanceResponse[] = [];
       for (const type of types) {
         const balance = await ensureYearBalance(tx, {
-          tenantId,
-          staffProfileId,
+          employeeProfileId,
           leaveTypeId: type.id,
           year,
           allowCarryForward: type.allowCarryForward,
@@ -565,7 +556,7 @@ export class LeaveService {
   }
 
   /**
-   * Sums `daysCount` for a staff member's approved requests against an UNPAID leave type whose
+   * Sums `daysCount` for an employee's approved requests against an UNPAID leave type whose
    * `startDate` falls within `[monthStart, monthEnd]` — used by Payroll to reduce `paidDays` for
    * unpaid-leave proration (docs/MODULES/leave.md Integrations: "reduces paidDays ... exactly like
    * the existing Date-of-Join proration"). A request spanning a payroll-month boundary counts its
@@ -573,10 +564,10 @@ export class LeaveService {
    * across the boundary (a stated v1 simplification; neither payroll.md nor this doc specifies the
    * cross-boundary case).
    */
-  async getUnpaidLeaveDays(staffProfileId: string, monthStart: Date, monthEnd: Date): Promise<number> {
+  async getUnpaidLeaveDays(employeeProfileId: string, monthStart: Date, monthEnd: Date): Promise<number> {
     const result = await this.prisma.client.leaveRequest.aggregate({
       where: {
-        staffProfileId,
+        employeeProfileId,
         status: "approved",
         startDate: { gte: monthStart, lte: monthEnd },
         leaveType: { isPaid: false },
@@ -587,17 +578,16 @@ export class LeaveService {
   }
 
   /**
-   * Eagerly credits every currently-eligible staff member's balance for a just-created leave
+   * Eagerly credits every currently-eligible employee's balance for a just-created leave
    * type, rather than leaving it at `accrued: 0` until the next nightly leave-accrual run (see
    * leave-accrual.job.ts) — called from `LeaveTypesService.create()`.
    */
   async creditNewLeaveType(leaveType: LeaveTypeForAccrual): Promise<void> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const today = dateOnlyUtc(new Date());
 
     // Same eligibility filter as the nightly job: a null joiningDate means "always eligible"
     // (see money.ts's paidDaysForJoin) — `{ lte: today }` alone would exclude those rows.
-    const staff = await this.prisma.client.staffProfile.findMany({
+    const employees = await this.prisma.client.employeeProfile.findMany({
       where: {
         OR: [{ joiningDate: null }, { joiningDate: { lte: today } }],
         user: { status: "active", deletedAt: null },
@@ -605,11 +595,10 @@ export class LeaveService {
       select: { id: true, joiningDate: true },
     });
 
-    for (const member of staff) {
-      await this.prisma.withTenantTx((tx) =>
+    for (const member of employees) {
+      await this.prisma.client.$transaction((tx) =>
         accrueIfDue(tx, {
-          tenantId,
-          staffProfileId: member.id,
+          employeeProfileId: member.id,
           joiningDate: member.joiningDate,
           leaveType,
           today,
@@ -668,8 +657,7 @@ export class LeaveService {
   }
 
   async presignUpload(input: PresignLeaveAttachmentInput): Promise<PresignedUpload> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
-    const key = `tenants/${tenantId}/leave-attachments/${randomUUID()}-${input.fileName}`;
+    const key = `leave-attachments/${randomUUID()}-${input.fileName}`;
     const uploadUrl = await this.storage.getUploadUrl(key, input.contentType);
     return { uploadUrl, key };
   }
@@ -707,20 +695,20 @@ export class LeaveService {
       ...(statuses ? { status: { in: [...statuses] } } : {}),
       ...(query.leaveTypeId ? { leaveTypeId: query.leaveTypeId } : {}),
       ...(query.search
-        ? { staffProfile: { user: { name: { contains: query.search, mode: "insensitive" as const } } } }
+        ? { employeeProfile: { user: { name: { contains: query.search, mode: "insensitive" as const } } } }
         : {}),
     };
   }
 
-  private async loadStaff(staffProfileId: string): Promise<StaffWithRefs> {
-    const staff = await this.prisma.client.staffProfile.findUnique({
-      where: { id: staffProfileId },
+  private async loadEmployee(employeeProfileId: string): Promise<EmployeeWithRefs> {
+    const employee = await this.prisma.client.employeeProfile.findUnique({
+      where: { id: employeeProfileId },
       include: { user: { include: { role: true } }, primaryBranch: true },
     });
-    if (!staff) {
-      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Staff member not found" });
+    if (!employee) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Employee not found" });
     }
-    return staff;
+    return employee;
   }
 
   private async loadRequestForTransition(tx: TxClient, id: string) {
@@ -741,21 +729,20 @@ export class LeaveService {
   /** Writes `on_leave` for each date in range that has no recorded sessions — real activity always wins. */
   private async markAttendanceOnLeave(
     tx: TxClient,
-    tenantId: string,
-    staffProfileId: string,
+    employeeProfileId: string,
     start: Date,
     end: Date,
   ): Promise<void> {
     for (const date of daysBetweenInclusive(start, end)) {
       const existing = await tx.attendanceDay.findUnique({
-        where: { tenantId_staffProfileId_date: { tenantId, staffProfileId, date } },
+        where: { employeeProfileId_date: { employeeProfileId, date } },
         include: { sessions: { select: { id: true }, take: 1 } },
       });
       if (existing) {
         if (existing.sessions.length > 0) continue;
         await tx.attendanceDay.update({ where: { id: existing.id }, data: { status: "on_leave" } });
       } else {
-        await tx.attendanceDay.create({ data: { tenantId, staffProfileId, date, status: "on_leave" } });
+        await tx.attendanceDay.create({ data: { employeeProfileId, date, status: "on_leave" } });
       }
     }
   }
@@ -769,14 +756,13 @@ export class LeaveService {
    */
   private async revertAttendanceOnLeave(
     tx: TxClient,
-    tenantId: string,
-    staffProfileId: string,
+    employeeProfileId: string,
     start: Date,
     end: Date,
   ): Promise<void> {
     for (const date of daysBetweenInclusive(start, end)) {
       const existing = await tx.attendanceDay.findUnique({
-        where: { tenantId_staffProfileId_date: { tenantId, staffProfileId, date } },
+        where: { employeeProfileId_date: { employeeProfileId, date } },
         include: { sessions: { select: { id: true }, take: 1 } },
       });
       if (existing && existing.status === "on_leave" && existing.sessions.length === 0) {
@@ -786,10 +772,10 @@ export class LeaveService {
   }
 
   /** Rejects a request that occupies the same half (or more) of a day as an existing active one. */
-  private async assertNoDateConflict(tx: TxClient, staffProfileId: string, input: HalfDayInput & { startDate: Date; endDate: Date }): Promise<void> {
+  private async assertNoDateConflict(tx: TxClient, employeeProfileId: string, input: HalfDayInput & { startDate: Date; endDate: Date }): Promise<void> {
     const candidates = await tx.leaveRequest.findMany({
       where: {
-        staffProfileId,
+        employeeProfileId,
         status: { in: [...ACTIVE_LEAVE_STATUSES] },
         startDate: { lte: input.endDate },
         endDate: { gte: input.startDate },
@@ -817,10 +803,10 @@ export class LeaveService {
     }
   }
 
-  private async resolveOwnStaffProfile(userId: string): Promise<{ id: string }> {
-    const profile = await this.prisma.client.staffProfile.findUnique({ where: { userId }, select: { id: true } });
+  private async resolveOwnEmployeeProfile(userId: string): Promise<{ id: string }> {
+    const profile = await this.prisma.client.employeeProfile.findUnique({ where: { userId }, select: { id: true } });
     if (!profile) {
-      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "No staff profile for current user" });
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "No employee profile for current user" });
     }
     return profile;
   }
@@ -832,7 +818,7 @@ export class LeaveService {
     }
   }
 
-  private assertStaffBranchAccess(primaryBranchId: string | null): void {
+  private assertEmployeeBranchAccess(primaryBranchId: string | null): void {
     const effective = getEffectiveBranchIds(this.cls);
     if (effective && (!primaryBranchId || !effective.includes(primaryBranchId))) {
       throw new ForbiddenException({ code: ERROR_CODES.BRANCH_ACCESS_DENIED, message: "Branch access denied" });

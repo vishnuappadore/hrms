@@ -24,7 +24,6 @@ export class AuditService {
 
   async log(entry: AuditEntry, tx?: TxClient): Promise<void> {
     const data = {
-      tenantId: this.cls.get(CLS_KEYS.tenantId) as string,
       userId: (this.cls.get(CLS_KEYS.userId) as string) ?? null,
       action: entry.action,
       entityType: entry.entityType,

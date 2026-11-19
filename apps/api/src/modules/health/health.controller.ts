@@ -1,7 +1,7 @@
 import { Controller, Get, ServiceUnavailableException } from "@nestjs/common";
 import Redis from "ioredis";
 import { Public } from "../../common/decorators";
-import { AuthPrismaService } from "../../database/auth-prisma.service";
+import { PrismaService } from "../../database/prisma.service";
 
 /**
  * Liveness (/healthz) and readiness (/ready) — distinct endpoints on purpose:
@@ -11,7 +11,7 @@ import { AuthPrismaService } from "../../database/auth-prisma.service";
 export class HealthController {
   private redis?: Redis;
 
-  constructor(private readonly db: AuthPrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @Public()
   @Get("healthz")
@@ -23,7 +23,7 @@ export class HealthController {
   @Get("ready")
   async ready() {
     try {
-      await this.db.$queryRaw`SELECT 1`;
+      await this.prisma.client.$queryRaw`SELECT 1`;
       this.redis ??= new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
         lazyConnect: true,
         maxRetriesPerRequest: 1,

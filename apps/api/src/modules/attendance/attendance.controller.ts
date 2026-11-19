@@ -7,7 +7,7 @@ import { AttendanceKpisQueryDto, ListAttendanceQueryDto, UpdateAttendanceDayDto 
 export class AttendanceController {
   constructor(private readonly attendance: AttendanceService) {}
 
-  /** Self-service — every staff member, not gated by a management permission. */
+  /** Self-service — every employee, not gated by a management permission. */
   @Post("check-in")
   @Permissions("attendance.mark")
   checkIn() {
@@ -20,39 +20,39 @@ export class AttendanceController {
     return this.attendance.checkOut();
   }
 
-  /** Viewing your own already-recorded attendance needs no permission, same as GET /users/me. */
+  /** Viewing your own already-recorded attendance needs no permission, same as GET /employees/me. */
   @Get("me/today")
   getMyToday() {
     return this.attendance.getMyToday();
   }
 
-  // Static segments before :staffProfileId routes (NestJS route-order gotcha).
+  // Static segments before :employeeProfileId routes (NestJS route-order gotcha).
   @Get("kpis")
   @Permissions("attendance.view")
   getKpis(@Query() query: AttendanceKpisQueryDto) {
     return this.attendance.getKpis(query);
   }
 
-  @Get(":staffProfileId/monthly")
+  @Get(":employeeProfileId/monthly")
   @Permissions("attendance.view")
-  getMonthlyDetail(@Param("staffProfileId") staffProfileId: string, @Query("month") month: string) {
-    return this.attendance.getMonthlyDetail(staffProfileId, month);
+  getMonthlyDetail(@Param("employeeProfileId") employeeProfileId: string, @Query("month") month: string) {
+    return this.attendance.getMonthlyDetail(employeeProfileId, month);
   }
 
-  @Get(":staffProfileId/days/:date")
+  @Get(":employeeProfileId/days/:date")
   @Permissions("attendance.view")
-  getDayDetail(@Param("staffProfileId") staffProfileId: string, @Param("date") date: string) {
-    return this.attendance.getDayDetail(staffProfileId, date);
+  getDayDetail(@Param("employeeProfileId") employeeProfileId: string, @Param("date") date: string) {
+    return this.attendance.getDayDetail(employeeProfileId, date);
   }
 
-  @Patch(":staffProfileId/days/:date")
+  @Patch(":employeeProfileId/days/:date")
   @Permissions("attendance.edit")
   updateDay(
-    @Param("staffProfileId") staffProfileId: string,
+    @Param("employeeProfileId") employeeProfileId: string,
     @Param("date") date: string,
     @Body() dto: UpdateAttendanceDayDto,
   ) {
-    return this.attendance.updateDay(staffProfileId, date, dto);
+    return this.attendance.updateDay(employeeProfileId, date, dto);
   }
 
   @Get()

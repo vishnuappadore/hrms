@@ -80,7 +80,7 @@ function isLate(checkInAt: Date, date: Date, openingTime: string): boolean {
 }
 
 /**
- * Status for a staff+date with NO `attendance_days` row at all — never
+ * Status for an employee+date with NO `attendance_days` row at all — never
  * guessed, derived purely from where `date` sits relative to `today` and the
  * branch's weekly-off days. `pending` is intentionally never "absent" before
  * the day is actually over (confirmed decision, docs/MODULES/attendance.md).
@@ -136,17 +136,17 @@ function paginate<T>(items: T[], page: number, pageSize: number): Paginated<T> {
   return { data: items.slice(start, start + pageSize), meta: { page, pageSize, total: items.length } };
 }
 
-const ELIGIBLE_STAFF_SELECT = {
+const ELIGIBLE_EMPLOYEE_SELECT = {
   id: true,
   primaryBranchId: true,
   primaryBranch: { select: { nameEn: true, workingHours: true } },
   user: { select: { name: true } },
-} satisfies Prisma.StaffProfileSelect;
+} satisfies Prisma.EmployeeProfileSelect;
 
-type EligibleStaffRow = Prisma.StaffProfileGetPayload<{ select: typeof ELIGIBLE_STAFF_SELECT }>;
+type EligibleEmployeeRow = Prisma.EmployeeProfileGetPayload<{ select: typeof ELIGIBLE_EMPLOYEE_SELECT }>;
 
-function staffRef(s: EligibleStaffRow): { id: string; name: string; branchName: string | null } {
-  return { id: s.id, name: s.user.name, branchName: s.primaryBranch?.nameEn ?? null };
+function employeeRef(e: EligibleEmployeeRow): { id: string; name: string; branchName: string | null } {
+  return { id: e.id, name: e.user.name, branchName: e.primaryBranch?.nameEn ?? null };
 }
 
 @Injectable()
@@ -160,14 +160,13 @@ export class AttendanceService {
   // ───────────────────────── Self-service ─────────────────────────
 
   async checkIn(): Promise<MyAttendanceToday> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
-    const profile = await this.resolveOwnStaffProfile(userId);
+    const profile = await this.resolveOwnEmployeeProfile(userId);
     const today = todayUtc();
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       let day = await tx.attendanceDay.findUnique({
-        where: { tenantId_staffProfileId_date: { tenantId, staffProfileId: profile.id, date: today } },
+        where: { employeeProfileId_date: { employeeProfileId: profile.id, date: today } },
         include: { sessions: { orderBy: { checkInAt: "desc" }, take: 1 } },
       });
       if (day?.sessions[0] && day.sessions[0].checkOutAt === null) {
@@ -178,12 +177,12 @@ export class AttendanceService {
       }
       if (!day) {
         day = await tx.attendanceDay.create({
-          data: { tenantId, staffProfileId: profile.id, date: today, status: "pending" },
+          data: { employeeProfileId: profile.id, date: today, status: "pending" },
           include: { sessions: { orderBy: { checkInAt: "desc" }, take: 1 } },
         });
       }
       await tx.attendanceSession.create({
-        data: { tenantId, attendanceDayId: day.id, checkInAt: new Date(), source: "self", createdByUserId: userId },
+        data: { attendanceDayId: day.id, checkInAt: new Date(), source: "self", createdByUserId: userId },
       });
       const updated = await this.recomputeDay(tx, day.id);
       return toMyAttendanceToday(updated);
@@ -191,14 +190,13 @@ export class AttendanceService {
   }
 
   async checkOut(): Promise<MyAttendanceToday> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
-    const profile = await this.resolveOwnStaffProfile(userId);
+    const profile = await this.resolveOwnEmployeeProfile(userId);
     const today = todayUtc();
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       const day = await tx.attendanceDay.findUnique({
-        where: { tenantId_staffProfileId_date: { tenantId, staffProfileId: profile.id, date: today } },
+        where: { employeeProfileId_date: { employeeProfileId: profile.id, date: today } },
         include: { sessions: { orderBy: { checkInAt: "desc" }, take: 1 } },
       });
       const openSession = day?.sessions[0];
@@ -215,13 +213,12 @@ export class AttendanceService {
   }
 
   async getMyToday(): Promise<MyAttendanceToday> {
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
-    const profile = await this.resolveOwnStaffProfile(userId);
+    const profile = await this.resolveOwnEmployeeProfile(userId);
     const today = todayUtc();
 
     const day = await this.prisma.client.attendanceDay.findUnique({
-      where: { tenantId_staffProfileId_date: { tenantId, staffProfileId: profile.id, date: today } },
+      where: { employeeProfileId_date: { employeeProfileId: profile.id, date: today } },
       include: { sessions: { orderBy: { checkInAt: "asc" } } },
     });
     if (!day) {
@@ -230,12 +227,12 @@ export class AttendanceService {
     return toMyAttendanceToday(day);
   }
 
-  private async resolveOwnStaffProfile(userId: string): Promise<{ id: string }> {
-    const profile = await this.prisma.client.staffProfile.findUnique({ where: { userId }, select: { id: true } });
+  private async resolveOwnEmployeeProfile(userId: string): Promise<{ id: string }> {
+    const profile = await this.prisma.client.employeeProfile.findUnique({ where: { userId }, select: { id: true } });
     if (!profile) {
       throw new NotFoundException({
-        code: ERROR_CODES.ATTENDANCE_NO_STAFF_PROFILE,
-        message: "No staff profile for current user",
+        code: ERROR_CODES.ATTENDANCE_NO_EMPLOYEE_PROFILE,
+        message: "No employee profile for current user",
       });
     }
     return profile;
@@ -255,19 +252,19 @@ export class AttendanceService {
     }
     const date = parseDateParam(query.date);
     const today = todayUtc();
-    const staff = await this.eligibleStaff(query.branchId, query.search);
+    const employees = await this.eligibleEmployees(query.branchId, query.search);
     const dayRows = await this.prisma.client.attendanceDay.findMany({
-      where: { date, staffProfileId: { in: staff.map((s) => s.id) } },
+      where: { date, employeeProfileId: { in: employees.map((e) => e.id) } },
       include: { sessions: true },
     });
-    const dayByStaff = new Map(dayRows.map((d) => [d.staffProfileId, d]));
+    const dayByEmployee = new Map(dayRows.map((d) => [d.employeeProfileId, d]));
 
-    const summaries = staff.map((s) => {
-      const day = dayByStaff.get(s.id);
-      const workingHours = parseWorkingHours(s.primaryBranch?.workingHours);
+    const summaries = employees.map((e) => {
+      const day = dayByEmployee.get(e.id);
+      const workingHours = parseWorkingHours(e.primaryBranch?.workingHours);
       if (day) {
         return {
-          staff: staffRef(s),
+          employee: employeeRef(e),
           date,
           status: day.status,
           firstInAt: day.firstInAt,
@@ -277,7 +274,7 @@ export class AttendanceService {
         };
       }
       return {
-        staff: staffRef(s),
+        employee: employeeRef(e),
         date,
         status: deriveMissingRowStatus(date, today, workingHours.weeklyOffDays),
         firstInAt: null,
@@ -293,13 +290,13 @@ export class AttendanceService {
     if (!query.month) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_FAILED, message: "month is required" });
     }
-    const staff = await this.eligibleStaff(query.branchId, query.search);
-    const aggregates = await this.computeMonthlyAggregates(staff, query.month);
+    const employees = await this.eligibleEmployees(query.branchId, query.search);
+    const aggregates = await this.computeMonthlyAggregates(employees, query.month);
     return paginate(aggregates, query.page, query.pageSize);
   }
 
   async getKpis(query: AttendanceKpisQuery): Promise<AttendanceKpis> {
-    const staff = await this.eligibleStaff(query.branchId, query.search);
+    const employees = await this.eligibleEmployees(query.branchId, query.search);
 
     if (query.scope === "today") {
       if (!query.date) {
@@ -308,33 +305,33 @@ export class AttendanceService {
       const date = parseDateParam(query.date);
       const today = todayUtc();
       const dayRows = await this.prisma.client.attendanceDay.findMany({
-        where: { date, staffProfileId: { in: staff.map((s) => s.id) } },
+        where: { date, employeeProfileId: { in: employees.map((e) => e.id) } },
       });
-      const dayByStaff = new Map(dayRows.map((d) => [d.staffProfileId, d]));
+      const dayByEmployee = new Map(dayRows.map((d) => [d.employeeProfileId, d]));
 
       let present = 0;
       let late = 0;
       let onLeave = 0;
       let absent = 0;
-      let workingStaffCount = 0;
-      for (const s of staff) {
-        const workingHours = parseWorkingHours(s.primaryBranch?.workingHours);
-        const status = dayByStaff.get(s.id)?.status ?? deriveMissingRowStatus(date, today, workingHours.weeklyOffDays);
+      let workingEmployeeCount = 0;
+      for (const e of employees) {
+        const workingHours = parseWorkingHours(e.primaryBranch?.workingHours);
+        const status = dayByEmployee.get(e.id)?.status ?? deriveMissingRowStatus(date, today, workingHours.weeklyOffDays);
         if (status === "weekly_off" || status === "pending" || status === "holiday") continue;
-        workingStaffCount++;
+        workingEmployeeCount++;
         if (status === "present") present++;
         else if (status === "late") late++;
         else if (status === "on_leave") onLeave++;
         else if (status === "absent") absent++;
       }
-      const attendanceRatePct = workingStaffCount ? round1((present + late) / workingStaffCount) : 0;
+      const attendanceRatePct = workingEmployeeCount ? round1((present + late) / workingEmployeeCount) : 0;
       return { present, late, onLeave, absent, attendanceRatePct };
     }
 
     if (!query.month) {
       throw new BadRequestException({ code: ERROR_CODES.VALIDATION_FAILED, message: "month is required" });
     }
-    const aggregates = await this.computeMonthlyAggregates(staff, query.month);
+    const aggregates = await this.computeMonthlyAggregates(employees, query.month);
     const present = aggregates.reduce((sum, a) => sum + a.presentDays, 0);
     const late = aggregates.reduce((sum, a) => sum + a.lateDays, 0);
     const onLeave = aggregates.reduce((sum, a) => sum + a.leaveDays, 0);
@@ -344,21 +341,20 @@ export class AttendanceService {
     return { present, late, onLeave, absent, attendanceRatePct };
   }
 
-  async getDayDetail(staffProfileId: string, dateStr: string): Promise<AttendanceDayDetail> {
-    const staffProfile = await this.loadStaffProfileForDetail(staffProfileId);
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
+  async getDayDetail(employeeProfileId: string, dateStr: string): Promise<AttendanceDayDetail> {
+    const employeeProfile = await this.loadEmployeeProfileForDetail(employeeProfileId);
     const date = parseDateParam(dateStr);
     const today = todayUtc();
 
     const day = await this.prisma.client.attendanceDay.findUnique({
-      where: { tenantId_staffProfileId_date: { tenantId, staffProfileId, date } },
+      where: { employeeProfileId_date: { employeeProfileId, date } },
       include: { sessions: true },
     });
-    const workingHours = parseWorkingHours(staffProfile.primaryBranch?.workingHours);
-    const ref = staffRef(staffProfile);
+    const workingHours = parseWorkingHours(employeeProfile.primaryBranch?.workingHours);
+    const ref = employeeRef(employeeProfile);
     if (!day) {
       return {
-        staff: ref,
+        employee: ref,
         date,
         status: deriveMissingRowStatus(date, today, workingHours.weeklyOffDays),
         firstInAt: null,
@@ -371,7 +367,7 @@ export class AttendanceService {
       };
     }
     return {
-      staff: ref,
+      employee: ref,
       date: day.date,
       status: day.status,
       firstInAt: day.firstInAt,
@@ -384,15 +380,15 @@ export class AttendanceService {
     };
   }
 
-  async getMonthlyDetail(staffProfileId: string, month: string): Promise<AttendanceMonthlyDetail> {
-    const staffProfile = await this.loadStaffProfileForDetail(staffProfileId);
-    const [summary] = await this.computeMonthlyAggregates([staffProfile], month);
+  async getMonthlyDetail(employeeProfileId: string, month: string): Promise<AttendanceMonthlyDetail> {
+    const employeeProfile = await this.loadEmployeeProfileForDetail(employeeProfileId);
+    const [summary] = await this.computeMonthlyAggregates([employeeProfile], month);
     const bounds = payrollMonthBounds(month);
     const today = todayUtc();
-    const workingHours = parseWorkingHours(staffProfile.primaryBranch?.workingHours);
+    const workingHours = parseWorkingHours(employeeProfile.primaryBranch?.workingHours);
 
     const rows = await this.prisma.client.attendanceDay.findMany({
-      where: { staffProfileId, date: { gte: bounds.start, lte: bounds.end } },
+      where: { employeeProfileId, date: { gte: bounds.start, lte: bounds.end } },
       include: { sessions: true },
     });
     const rowByTime = new Map(rows.map((r) => [r.date.getTime(), r]));
@@ -425,27 +421,25 @@ export class AttendanceService {
   }
 
   async updateDay(
-    staffProfileId: string,
+    employeeProfileId: string,
     dateStr: string,
     input: UpdateAttendanceDayInput,
   ): Promise<AttendanceDayDetail> {
-    const staffProfile = await this.loadStaffProfileForDetail(staffProfileId);
+    const employeeProfile = await this.loadEmployeeProfileForDetail(employeeProfileId);
     const date = parseDateParam(dateStr);
-    const tenantId = this.cls.get(CLS_KEYS.tenantId) as string;
     const userId = this.cls.get(CLS_KEYS.userId) as string;
 
-    return this.prisma.withTenantTx(async (tx) => {
+    return this.prisma.client.$transaction(async (tx) => {
       let day = await tx.attendanceDay.findUnique({
-        where: { tenantId_staffProfileId_date: { tenantId, staffProfileId, date } },
+        where: { employeeProfileId_date: { employeeProfileId, date } },
       });
       if (!day) {
-        day = await tx.attendanceDay.create({ data: { tenantId, staffProfileId, date, status: "pending" } });
+        day = await tx.attendanceDay.create({ data: { employeeProfileId, date, status: "pending" } });
       }
       await tx.attendanceSession.deleteMany({ where: { attendanceDayId: day.id } });
       if (input.sessions.length > 0) {
         await tx.attendanceSession.createMany({
           data: input.sessions.map((s) => ({
-            tenantId,
             attendanceDayId: day!.id,
             checkInAt: s.checkInAt,
             checkOutAt: s.checkOutAt,
@@ -468,9 +462,9 @@ export class AttendanceService {
         },
         tx,
       );
-      const ref = staffRef(staffProfile);
+      const ref = employeeRef(employeeProfile);
       return {
-        staff: ref,
+        employee: ref,
         date: updated.date,
         status: updated.status,
         firstInAt: updated.firstInAt,
@@ -485,22 +479,22 @@ export class AttendanceService {
   }
 
   /**
-   * Counts genuine "absent" days (no attendance row, not weekly-off/holiday, in the past) for a
-   * staff member within `[start, end]` — used by Payroll to compute the absence deduction. Reuses
+   * Counts genuine "absent" days (no attendance row, not weekly-off/holiday, in the past) for an
+   * employee within `[start, end]` — used by Payroll to compute the absence deduction. Reuses
    * the exact same per-day derivation (`deriveMissingRowStatus`) as every other Attendance view,
    * so a day counted "absent" here always matches what the Today/Monthly screens would show for it.
    */
-  async countAbsentDays(staffProfileId: string, start: Date, end: Date): Promise<number> {
+  async countAbsentDays(employeeProfileId: string, start: Date, end: Date): Promise<number> {
     if (start.getTime() > end.getTime()) return 0;
-    const staffProfile = await this.prisma.client.staffProfile.findUnique({
-      where: { id: staffProfileId },
+    const employeeProfile = await this.prisma.client.employeeProfile.findUnique({
+      where: { id: employeeProfileId },
       select: { primaryBranch: { select: { workingHours: true } } },
     });
-    const weeklyOffDays = parseWorkingHours(staffProfile?.primaryBranch?.workingHours).weeklyOffDays;
+    const weeklyOffDays = parseWorkingHours(employeeProfile?.primaryBranch?.workingHours).weeklyOffDays;
     const today = todayUtc();
 
     const rows = await this.prisma.client.attendanceDay.findMany({
-      where: { staffProfileId, date: { gte: start, lte: end } },
+      where: { employeeProfileId, date: { gte: start, lte: end } },
       select: { date: true, status: true },
     });
     const statusByTime = new Map(rows.map((r) => [r.date.getTime(), r.status]));
@@ -520,9 +514,9 @@ export class AttendanceService {
   private async recomputeDay(tx: TxClient, dayId: string) {
     const day = await tx.attendanceDay.findUniqueOrThrow({
       where: { id: dayId },
-      include: { sessions: true, staffProfile: { include: { primaryBranch: true } } },
+      include: { sessions: true, employeeProfile: { include: { primaryBranch: true } } },
     });
-    const workingHours = parseWorkingHours(day.staffProfile.primaryBranch?.workingHours);
+    const workingHours = parseWorkingHours(day.employeeProfile.primaryBranch?.workingHours);
     const fields = computeDayFields(day.sessions, day.date, workingHours.openingTime);
     return tx.attendanceDay.update({
       where: { id: dayId },
@@ -536,16 +530,16 @@ export class AttendanceService {
     });
   }
 
-  private async loadStaffProfileForDetail(staffProfileId: string): Promise<EligibleStaffRow> {
-    const staffProfile = await this.prisma.client.staffProfile.findUnique({
-      where: { id: staffProfileId },
-      select: ELIGIBLE_STAFF_SELECT,
+  private async loadEmployeeProfileForDetail(employeeProfileId: string): Promise<EligibleEmployeeRow> {
+    const employeeProfile = await this.prisma.client.employeeProfile.findUnique({
+      where: { id: employeeProfileId },
+      select: ELIGIBLE_EMPLOYEE_SELECT,
     });
-    if (!staffProfile) {
-      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Staff not found" });
+    if (!employeeProfile) {
+      throw new NotFoundException({ code: ERROR_CODES.NOT_FOUND, message: "Employee not found" });
     }
-    this.assertStaffBranchAccess(staffProfile.primaryBranchId);
-    return staffProfile;
+    this.assertEmployeeBranchAccess(employeeProfile.primaryBranchId);
+    return employeeProfile;
   }
 
   private assertBranchAccess(branchId: string): void {
@@ -555,17 +549,17 @@ export class AttendanceService {
     }
   }
 
-  private assertStaffBranchAccess(primaryBranchId: string | null): void {
+  private assertEmployeeBranchAccess(primaryBranchId: string | null): void {
     const effective = getEffectiveBranchIds(this.cls);
     if (effective && (!primaryBranchId || !effective.includes(primaryBranchId))) {
       throw new ForbiddenException({ code: ERROR_CODES.BRANCH_ACCESS_DENIED, message: "Branch access denied" });
     }
   }
 
-  private async eligibleStaff(branchId?: string, search?: string): Promise<EligibleStaffRow[]> {
+  private async eligibleEmployees(branchId?: string, search?: string): Promise<EligibleEmployeeRow[]> {
     const effective = getEffectiveBranchIds(this.cls);
-    let primaryBranchId: Prisma.StaffProfileWhereInput["primaryBranchId"];
-    // "All branches" (no explicit branchId) excludes inactive branches' staff; an explicit
+    let primaryBranchId: Prisma.EmployeeProfileWhereInput["primaryBranchId"];
+    // "All branches" (no explicit branchId) excludes inactive branches' employees; an explicit
     // branchId is trusted as-is (the branch picker only ever lists active branches anyway).
     let requireActiveBranch = false;
     if (branchId) {
@@ -575,7 +569,7 @@ export class AttendanceService {
       requireActiveBranch = true;
       if (effective) primaryBranchId = { in: effective };
     }
-    return this.prisma.client.staffProfile.findMany({
+    return this.prisma.client.employeeProfile.findMany({
       where: {
         primaryBranchId: primaryBranchId ?? { not: null },
         ...(requireActiveBranch ? { primaryBranch: { status: "active" } } : {}),
@@ -585,21 +579,21 @@ export class AttendanceService {
           ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
         },
       },
-      select: ELIGIBLE_STAFF_SELECT,
+      select: ELIGIBLE_EMPLOYEE_SELECT,
       orderBy: { user: { name: "asc" } },
     });
   }
 
   /**
-   * Per-staff monthly totals. Combines real `attendance_days` rows with
-   * synthesized status for days without one (so a staff member who never
+   * Per-employee monthly totals. Combines real `attendance_days` rows with
+   * synthesized status for days without one (so an employee who never
    * once checked in all month still shows the correct absent/weekly-off
-   * counts) — a bounded day-by-day loop (<=31 days per staff), not a raw
+   * counts) — a bounded day-by-day loop (<=31 days per employee), not a raw
    * `groupBy` alone, since `groupBy` only sees rows that actually exist.
    * Stops at `today` for the current month so future days are never counted.
    */
   private async computeMonthlyAggregates(
-    staff: EligibleStaffRow[],
+    employees: EligibleEmployeeRow[],
     month: string,
   ): Promise<AttendanceMonthlyAggregate[]> {
     const bounds = payrollMonthBounds(month);
@@ -607,20 +601,20 @@ export class AttendanceService {
     const evaluatedEnd = bounds.end.getTime() < today.getTime() ? bounds.end : today;
 
     const rows =
-      staff.length === 0
+      employees.length === 0
         ? []
         : await this.prisma.client.attendanceDay.findMany({
-            where: { staffProfileId: { in: staff.map((s) => s.id) }, date: { gte: bounds.start, lte: bounds.end } },
+            where: { employeeProfileId: { in: employees.map((e) => e.id) }, date: { gte: bounds.start, lte: bounds.end } },
           });
-    const rowsByStaff = new Map<string, Map<number, (typeof rows)[number]>>();
+    const rowsByEmployee = new Map<string, Map<number, (typeof rows)[number]>>();
     for (const r of rows) {
-      if (!rowsByStaff.has(r.staffProfileId)) rowsByStaff.set(r.staffProfileId, new Map());
-      rowsByStaff.get(r.staffProfileId)!.set(r.date.getTime(), r);
+      if (!rowsByEmployee.has(r.employeeProfileId)) rowsByEmployee.set(r.employeeProfileId, new Map());
+      rowsByEmployee.get(r.employeeProfileId)!.set(r.date.getTime(), r);
     }
 
-    return staff.map((s) => {
-      const workingHours = parseWorkingHours(s.primaryBranch?.workingHours);
-      const staffRows = rowsByStaff.get(s.id) ?? new Map();
+    return employees.map((e) => {
+      const workingHours = parseWorkingHours(e.primaryBranch?.workingHours);
+      const employeeRows = rowsByEmployee.get(e.id) ?? new Map();
       let presentDays = 0;
       let lateDays = 0;
       let leaveDays = 0;
@@ -630,7 +624,7 @@ export class AttendanceService {
 
       for (let t = bounds.start.getTime(); t <= evaluatedEnd.getTime(); t += 86_400_000) {
         const d = new Date(t);
-        const row = staffRows.get(t);
+        const row = employeeRows.get(t);
         const status = row?.status ?? deriveMissingRowStatus(d, today, workingHours.weeklyOffDays);
         totalWorkedMinutes += row?.totalWorkedMinutes ?? 0;
         if (status === "weekly_off" || status === "pending" || status === "holiday") continue;
@@ -642,7 +636,7 @@ export class AttendanceService {
       }
 
       return {
-        staff: staffRef(s),
+        employee: employeeRef(e),
         month,
         presentDays,
         lateDays,

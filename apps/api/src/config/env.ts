@@ -5,7 +5,6 @@ const EnvSchema = z.object({
   API_PORT: z.coerce.number().default(4000),
 
   DATABASE_URL: z.string().min(1),
-  DIRECT_DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().default("redis://localhost:6379"),
 
   JWT_ACCESS_SECRET: z.string().min(16),
@@ -15,7 +14,7 @@ const EnvSchema = z.object({
 
   SMTP_HOST: z.string().default("localhost"),
   SMTP_PORT: z.coerce.number().default(1025),
-  MAIL_FROM: z.string().default("noreply@hayryou.local"),
+  MAIL_FROM: z.string().default("noreply@keystonehr.local"),
 
   // S3-compatible object storage (MinIO in dev; swapping to real AWS S3 later is purely an
   // env change — same client, same presigned-URL calls, docs/ARCHITECTURE.md's stated pattern).

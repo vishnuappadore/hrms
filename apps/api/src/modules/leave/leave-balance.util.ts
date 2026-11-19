@@ -13,25 +13,24 @@ export function closingBalance(row: LeaveBalanceRow): number {
 }
 
 /**
- * Get-or-create this year's balance row for a staff member + leave type. Creating it is also
- * where year-rollover + carry-forward happens (once per staff+type+year, from the prior year's
+ * Get-or-create this year's balance row for an employee + leave type. Creating it is also
+ * where year-rollover + carry-forward happens (once per employee+type+year, from the prior year's
  * closing balance, capped at maxCarryForwardDays) — independent of the leave type's credit
  * policy, which only governs how `accrued` grows afterward (see leave-accrual.job.ts).
  */
 export async function ensureYearBalance(
   tx: TxClient,
   params: {
-    tenantId: string;
-    staffProfileId: string;
+    employeeProfileId: string;
     leaveTypeId: string;
     year: number;
     allowCarryForward: boolean;
     maxCarryForwardDays: number;
   },
 ): Promise<LeaveBalanceRow> {
-  const { tenantId, staffProfileId, leaveTypeId, year, allowCarryForward, maxCarryForwardDays } = params;
+  const { employeeProfileId, leaveTypeId, year, allowCarryForward, maxCarryForwardDays } = params;
   const existing = await tx.leaveBalance.findUnique({
-    where: { tenantId_staffProfileId_leaveTypeId_year: { tenantId, staffProfileId, leaveTypeId, year } },
+    where: { employeeProfileId_leaveTypeId_year: { employeeProfileId, leaveTypeId, year } },
   });
   if (existing) return existing;
 
@@ -39,7 +38,7 @@ export async function ensureYearBalance(
   if (allowCarryForward) {
     const prior = await tx.leaveBalance.findUnique({
       where: {
-        tenantId_staffProfileId_leaveTypeId_year: { tenantId, staffProfileId, leaveTypeId, year: year - 1 },
+        employeeProfileId_leaveTypeId_year: { employeeProfileId, leaveTypeId, year: year - 1 },
       },
     });
     if (prior) {
@@ -48,6 +47,6 @@ export async function ensureYearBalance(
   }
 
   return tx.leaveBalance.create({
-    data: { tenantId, staffProfileId, leaveTypeId, year, openingBalance: 0, accrued: 0, used: 0, carriedForward },
+    data: { employeeProfileId, leaveTypeId, year, openingBalance: 0, accrued: 0, used: 0, carriedForward },
   });
 }

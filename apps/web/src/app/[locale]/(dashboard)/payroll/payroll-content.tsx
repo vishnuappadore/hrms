@@ -131,7 +131,7 @@ export function PayrollContent() {
       code === "PAYROLL_ITEM_LOCKED" ||
         code === "PAYROLL_INVALID_TRANSITION" ||
         code === "PAYROLL_ITEM_NOT_PENDING" ||
-        code === "PAYROLL_NO_ELIGIBLE_STAFF"
+        code === "PAYROLL_NO_ELIGIBLE_EMPLOYEES"
         ? tError(code)
         : tError("GENERIC"),
     );
