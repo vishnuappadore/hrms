@@ -48,13 +48,13 @@ export function AttendanceSessionDialog({
   target,
   onClose,
 }: {
-  target: { staffProfileId: string; date: string } | null;
+  target: { employeeProfileId: string; date: string } | null;
   onClose: () => void;
 }) {
   const t = useTranslations("attendance.sessionDialog");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const { data, isLoading } = useAttendanceDay(target?.staffProfileId, target?.date);
+  const { data, isLoading } = useAttendanceDay(target?.employeeProfileId, target?.date);
   const update = useUpdateAttendanceDay();
   const permissions = usePermissions();
   const [editing, setEditing] = useState(false);
@@ -75,7 +75,7 @@ export function AttendanceSessionDialog({
 
   useEffect(() => {
     setEditing(false);
-  }, [target?.staffProfileId, target?.date]);
+  }, [target?.employeeProfileId, target?.date]);
 
   useEffect(() => {
     if (data) reset(toFormValues(data));
@@ -104,7 +104,7 @@ export function AttendanceSessionDialog({
     if (!target) return;
     try {
       await update.mutateAsync({
-        staffProfileId: target.staffProfileId,
+        employeeProfileId: target.employeeProfileId,
         date: target.date,
         input: values,
       });
@@ -121,7 +121,7 @@ export function AttendanceSessionDialog({
     <Dialog
       open={target !== null}
       onClose={onClose}
-      title={data ? t("title", { name: data.staff.name }) : t("titleFallback")}
+      title={data ? t("title", { name: data.employee.name }) : t("titleFallback")}
       className="max-w-3xl"
       showCloseButton
       closeLabel={tc("close")}

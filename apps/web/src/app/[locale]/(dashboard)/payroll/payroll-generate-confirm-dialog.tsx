@@ -14,10 +14,10 @@ export interface GenerateConfirmState {
 
 /**
  * Shown before actually calling POST /payroll/runs — lets the admin see how
- * many staff will be added and the existing run's status breakdown before
+ * many employees will be added and the existing run's status breakdown before
  * committing. Counts come from a point-in-time preview call; see
  * PayrollRunPreviewSchema's doc comment for why they can't literally always
- * match the outcome (another admin could change staff data in between).
+ * match the outcome (another admin could change employee data in between).
  */
 export function PayrollGenerateConfirmDialog({
   state,

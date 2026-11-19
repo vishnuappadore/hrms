@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Avatar } from "@/components/ui/avatar";
-import { useMe } from "@/lib/queries/users";
+import { useMe } from "@/lib/queries/employees";
 
 /** Initials avatar + name for the signed-in user — links to the My Profile page. */
 export function TopbarUser() {

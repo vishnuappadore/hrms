@@ -9,7 +9,7 @@ function initials(name: string): string {
     .join("");
 }
 
-/** Initials placeholder — same shape as Payroll's staff cell (payroll-table.tsx), shared here.
+/** Initials placeholder — same shape as Payroll's employee cell (payroll-table.tsx), shared here.
  *  Pass `src` (e.g. a Customer's `photoUrl`) to render a real image instead, clipped to the same
  *  rounding; falls back to initials when absent. */
 export function Avatar({ name, src, className }: { name: string; src?: string | null; className?: string }) {

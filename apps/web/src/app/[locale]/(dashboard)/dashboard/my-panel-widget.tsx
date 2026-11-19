@@ -31,7 +31,7 @@ export function MyPanelWidget() {
   const tc = useTranslations("common");
   const locale = useLocale();
   const { data, isLoading, error: todayError } = useMyAttendanceToday();
-  const noStaffProfile =
+  const noEmployeeProfile =
     todayError instanceof ApiError && todayError.code === "ATTENDANCE_NO_EMPLOYEE_PROFILE";
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
@@ -57,7 +57,7 @@ export function MyPanelWidget() {
         code === "ATTENDANCE_ALREADY_CHECKED_IN" || code === "ATTENDANCE_NOT_CHECKED_IN"
           ? t("staleState")
           : code === "ATTENDANCE_NO_EMPLOYEE_PROFILE"
-            ? t("noStaffProfile")
+            ? t("noEmployeeProfile")
             : tc("errors.GENERIC"),
       );
     }
@@ -107,7 +107,7 @@ export function MyPanelWidget() {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          {permissions.includes("attendance.mark") && !noStaffProfile && (
+          {permissions.includes("attendance.mark") && !noEmployeeProfile && (
             <Button
               size="sm"
               variant={data?.isCheckedIn ? "destructive" : "primary"}

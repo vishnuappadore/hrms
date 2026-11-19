@@ -22,7 +22,7 @@ export function ApproveLeaveDialog({
   const tc = useTranslations("common");
 
   return (
-    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.staff.name ?? "" })}>
+    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.employee.name ?? "" })}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{t("body")}</p>
         <div className="flex items-center justify-end gap-3">

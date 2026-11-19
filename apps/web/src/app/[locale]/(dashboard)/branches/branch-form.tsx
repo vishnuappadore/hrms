@@ -1,15 +1,9 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
-import {
-  Controller,
-  useForm,
-  type FieldPath,
-  type Resolver,
-  type UseFormRegisterReturn,
-} from "react-hook-form";
+import { type KeyboardEvent, type ReactNode, useState } from "react";
+import { Controller, useForm, type FieldPath, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { CreateBranchSchema, type CreateBranchInput } from "@keystonehr/shared";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
@@ -24,11 +18,8 @@ import { Input } from "@/components/ui/input";
 import { MobileInput } from "@/components/ui/mobile-input";
 import { Select } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
-import { StepperInput } from "@/components/ui/stepper-input";
 import { useCreateBranch, useUpdateBranch, type BranchDetail } from "@/lib/queries/branches";
-import { useFranchiseOwners } from "@/lib/queries/franchise-owners";
-import { useServices } from "@/lib/queries/services";
-import { useMe, useUsers } from "@/lib/queries/users";
+import { useEmployees, useMe } from "@/lib/queries/employees";
 
 const WEEK_DAYS = [
   "monday",
@@ -40,30 +31,21 @@ const WEEK_DAYS = [
   "sunday",
 ] as const;
 
-const CURRENCIES = ["OMR", "AED", "SAR", "QAR", "KWD", "BHD", "USD", "EUR"] as const;
+const CURRENCIES = ["AED", "SAR", "QAR", "KWD", "BHD", "OMR", "USD", "EUR"] as const;
 
 /** "" from empty inputs → undefined/null so optional zod fields validate. */
 const emptyToUndefined = { setValueAs: (v: unknown) => (v === "" ? undefined : v) };
 const emptyToNull = { setValueAs: (v: unknown) => (v === "" ? null : v) };
 
-function toDateInputValue(value: string | Date | undefined): string {
-  if (!value) return "";
-  return new Date(value).toISOString().slice(0, 10);
-}
-
 export function BranchForm({ branch }: { branch?: BranchDetail }) {
   const t = useTranslations("branches");
   const tc = useTranslations("common");
-  const locale = useLocale();
   const router = useRouter();
   const createBranch = useCreateBranch();
   const updateBranch = useUpdateBranch(branch?.id ?? "");
   const permissions = usePermissions();
   const canSave = permissions.includes(branch ? "branches.update" : "branches.create");
   const [serverError, setServerError] = useState<string | null>(null);
-  const [ownerMode, setOwnerMode] = useState<"existing" | "new">(
-    branch?.franchiseDetails ? "existing" : "new",
-  );
 
   const [step, setStep] = useState(0);
   const { data: me } = useMe();
@@ -84,7 +66,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
       ? {
           nameEn: branch.nameEn,
           nameAr: branch.nameAr,
-          type: branch.type,
           status: branch.status,
           managerUserId: branch.managerUserId,
           mobile: branch.mobile,
@@ -103,81 +84,15 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
               .weeklyOffDays as CreateBranchInput["workingHours"]["weeklyOffDays"],
           },
           currency: branch.currency,
-          chairCount: branch.chairCount,
-          allowOnlineBooking: branch.allowOnlineBooking,
-          allowWalkIns: branch.allowWalkIns,
-          enableLoyalty: branch.enableLoyalty,
-          enableProductSales: branch.enableProductSales,
-          franchiseDetails: branch.franchiseDetails
-            ? {
-                franchiseOwnerId: branch.franchiseDetails.franchiseOwnerId,
-                agreementStartDate: toDateInputValue(
-                  branch.franchiseDetails.agreementStartDate,
-                ) as unknown as Date,
-                agreementExpiryDate: toDateInputValue(
-                  branch.franchiseDetails.agreementExpiryDate,
-                ) as unknown as Date,
-              }
-            : null,
         }
       : {
-          type: "corporate",
           status: "active",
-          chairCount: 1,
-          allowOnlineBooking: true,
-          allowWalkIns: true,
-          enableLoyalty: true,
-          enableProductSales: true,
         },
   });
 
-  const type = watch("type");
-  const users = useUsers({ pageSize: 100 });
-  const owners = useFranchiseOwners(type === "franchise");
-  const services = useServices({ status: "active", pageSize: 100 });
+  const users = useEmployees({ pageSize: 100 });
 
-  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
-  const [servicesSeeded, setServicesSeeded] = useState(false);
-
-  useEffect(() => {
-    if (!services.data || servicesSeeded) return;
-    const offIds = new Set(
-      (branch?.branchServices ?? []).filter((r) => !r.isAvailable).map((r) => r.serviceId),
-    );
-    setSelectedServiceIds(
-      new Set(services.data.data.filter((s) => !offIds.has(s.id)).map((s) => s.id)),
-    );
-    setServicesSeeded(true);
-  }, [services.data, servicesSeeded, branch]);
-
-  function toggleService(id: string) {
-    setSelectedServiceIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  /* Wizard: 4 steps, each grouping several of the original topic sections.
-     Franchise fields are only validated for franchise branches (matches the
-     conditional section + `shouldUnregister` behaviour). */
   type F = FieldPath<CreateBranchInput>;
-  const franchiseFields: F[] =
-    ownerMode === "existing"
-      ? [
-          "franchiseDetails.franchiseOwnerId",
-          "franchiseDetails.agreementStartDate",
-          "franchiseDetails.agreementExpiryDate",
-        ]
-      : [
-          "franchiseDetails.newOwner.ownerName",
-          "franchiseDetails.newOwner.companyName",
-          "franchiseDetails.newOwner.commercialRegistrationNo",
-          "franchiseDetails.agreementStartDate",
-          "franchiseDetails.agreementExpiryDate",
-        ];
-
   const steps: { key: string; title: string; fields: F[] }[] = [
     {
       key: "details",
@@ -185,7 +100,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
       fields: [
         "nameEn",
         "nameAr",
-        "type",
         "status",
         "mobile",
         "landphone",
@@ -196,7 +110,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
         "city",
         "googleMapsUrl",
         "address",
-        ...(type === "franchise" ? franchiseFields : []),
       ],
     },
     {
@@ -209,11 +122,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
         "workingHours.weeklyOffDays",
         "currency",
       ],
-    },
-    {
-      key: "capacityServices",
-      title: t("form.stepCapacityServices"),
-      fields: ["chairCount", "allowOnlineBooking", "allowWalkIns", "enableLoyalty", "enableProductSales"],
     },
     { key: "review", title: t("form.stepReview"), fields: [] },
   ];
@@ -240,10 +148,9 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
 
   async function onSubmit(values: CreateBranchInput) {
     setServerError(null);
-    const payload = { ...values, serviceIds: [...selectedServiceIds] };
     try {
-      if (branch) await updateBranch.mutateAsync(payload);
-      else await createBranch.mutateAsync(payload);
+      if (branch) await updateBranch.mutateAsync(values);
+      else await createBranch.mutateAsync(values);
       router.replace("/branches");
       router.refresh();
     } catch (err) {
@@ -285,12 +192,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
           </Field>
           <Field label={t("form.nameAr")} htmlFor="nameAr" required error={err("nameAr")}>
             <Input id="nameAr" dir="rtl" {...register("nameAr")} />
-          </Field>
-          <Field label={t("form.type")} htmlFor="type" required>
-            <Select id="type" {...register("type")}>
-              <option value="corporate">{t("type.corporate")}</option>
-              <option value="franchise">{t("type.franchise")}</option>
-            </Select>
           </Field>
           <Field label={t("form.status")} htmlFor="status" required>
             <Select id="status" {...register("status")}>
@@ -343,124 +244,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
             </Field>
           </div>
         </FormSection>
-
-        {type === "franchise" && (
-          <FormSection title={t("form.franchiseInfo")}>
-            <div className="sm:col-span-2 flex gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="ownerMode"
-                  checked={ownerMode === "existing"}
-                  onChange={() => setOwnerMode("existing")}
-                  className="accent-primary"
-                />
-                {t("form.existingOwner")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="ownerMode"
-                  checked={ownerMode === "new"}
-                  onChange={() => setOwnerMode("new")}
-                  className="accent-primary"
-                />
-                {t("form.newOwner")}
-              </label>
-            </div>
-
-            {ownerMode === "existing" ? (
-              <Field
-                label={t("form.franchiseOwner")}
-                htmlFor="franchiseOwnerId"
-                required
-                error={err("franchiseDetails.franchiseOwnerId")}
-              >
-                <Select
-                  id="franchiseOwnerId"
-                  {...register("franchiseDetails.franchiseOwnerId", emptyToUndefined)}
-                >
-                  <option value="">—</option>
-                  {(owners.data?.data ?? []).map((owner) => (
-                    <option key={owner.id} value={owner.id}>
-                      {owner.ownerName} — {owner.companyName}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : (
-              <>
-                <Field
-                  label={t("form.ownerName")}
-                  htmlFor="ownerName"
-                  required
-                  error={err("franchiseDetails.newOwner.ownerName")}
-                >
-                  <Input id="ownerName" {...register("franchiseDetails.newOwner.ownerName")} />
-                </Field>
-                <Field
-                  label={t("form.companyName")}
-                  htmlFor="companyName"
-                  required
-                  error={err("franchiseDetails.newOwner.companyName")}
-                >
-                  <Input
-                    id="companyName"
-                    {...register("franchiseDetails.newOwner.companyName")}
-                  />
-                </Field>
-                <Field
-                  label={t("form.commercialRegistrationNo")}
-                  htmlFor="crNo"
-                  required
-                  error={err("franchiseDetails.newOwner.commercialRegistrationNo")}
-                >
-                  <Input
-                    id="crNo"
-                    dir="ltr"
-                    {...register("franchiseDetails.newOwner.commercialRegistrationNo")}
-                  />
-                </Field>
-                <Field
-                  label={t("form.taxNumber")}
-                  htmlFor="taxNumber"
-                  error={err("franchiseDetails.newOwner.taxNumber")}
-                >
-                  <Input
-                    id="taxNumber"
-                    dir="ltr"
-                    {...register("franchiseDetails.newOwner.taxNumber", emptyToNull)}
-                  />
-                </Field>
-              </>
-            )}
-
-            <Field
-              label={t("form.agreementStartDate")}
-              htmlFor="agreementStartDate"
-              required
-              error={err("franchiseDetails.agreementStartDate")}
-            >
-              <Input
-                id="agreementStartDate"
-                type="date"
-                {...register("franchiseDetails.agreementStartDate")}
-              />
-            </Field>
-            <Field
-              label={t("form.agreementExpiryDate")}
-              htmlFor="agreementExpiryDate"
-              required
-              error={err("franchiseDetails.agreementExpiryDate")}
-            >
-              <Input
-                id="agreementExpiryDate"
-                type="date"
-                {...register("franchiseDetails.agreementExpiryDate")}
-              />
-            </Field>
-          </FormSection>
-        )}
       </div>
 
       <div className={cn("space-y-4", show("managerHours"))}>
@@ -526,7 +309,7 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
         <FormSection title={t("form.financialConfig")}>
           <Field label={t("form.currency")} htmlFor="currency" error={err("currency")}>
             <Select id="currency" {...register("currency", emptyToUndefined)}>
-              <option value="">{t("form.tenantDefaultCurrency")}</option>
+              <option value="">{t("form.companyDefaultCurrency")}</option>
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -537,70 +320,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
         </FormSection>
       </div>
 
-      <div className={cn("space-y-4", show("capacityServices"))}>
-        <FormSection>
-          <Field label={t("form.chairCount")} htmlFor="chairCount">
-            <Controller
-              control={control}
-              name="chairCount"
-              render={({ field }) => (
-                <StepperInput
-                  id="chairCount"
-                  value={field.value ?? 1}
-                  onChange={field.onChange}
-                  min={1}
-                  max={100}
-                />
-              )}
-            />
-          </Field>
-        </FormSection>
-
-        <FormSection title={t("form.branchSettings")}>
-          <ToggleField
-            label={t("form.allowOnlineBooking")}
-            registration={register("allowOnlineBooking")}
-            watchValue={watch("allowOnlineBooking") ?? true}
-          />
-          <ToggleField
-            label={t("form.allowWalkIns")}
-            registration={register("allowWalkIns")}
-            watchValue={watch("allowWalkIns") ?? true}
-          />
-          <ToggleField
-            label={t("form.enableLoyalty")}
-            registration={register("enableLoyalty")}
-            watchValue={watch("enableLoyalty") ?? true}
-          />
-          <ToggleField
-            label={t("form.enableProductSales")}
-            registration={register("enableProductSales")}
-            watchValue={watch("enableProductSales") ?? true}
-          />
-        </FormSection>
-
-        <section className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t("form.servicesOffered")}
-          </h3>
-          {services.data?.data.length ? (
-            <div className="flex flex-wrap gap-2">
-              {services.data.data.map((s) => (
-                <Chip
-                  key={s.id}
-                  pressed={selectedServiceIds.has(s.id)}
-                  onClick={() => toggleService(s.id)}
-                >
-                  {locale === "ar" ? s.nameAr : s.nameEn}
-                </Chip>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">{t("form.noActiveServices")}</p>
-          )}
-        </section>
-      </div>
-
       <div className={cn("space-y-4", show("review"))}>
         <p className="text-sm text-muted-foreground">{t("form.reviewIntro")}</p>
         <section className="rounded-xl border border-border bg-card p-5">
@@ -608,10 +327,6 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
             <ReviewRow label={t("form.nameEn")} value={watch("nameEn")} />
             <ReviewRow label={t("form.country")} value={watch("country")} />
             <ReviewRow label={t("form.city")} value={watch("city")} />
-            <ReviewRow
-              label={t("form.type")}
-              value={watch("type") ? t(`type.${watch("type")}`) : undefined}
-            />
             <ReviewRow label={t("form.mobile")} value={watch("mobile")} />
             <ReviewRow label={t("form.manager")} value={managerName} />
             <ReviewRow
@@ -622,13 +337,11 @@ export function BranchForm({ branch }: { branch?: BranchDetail }) {
                   : undefined
               }
             />
-            <ReviewRow label={t("form.chairCount")} value={watch("chairCount")} />
-            {branch && <ReviewRow label={t("list.staff")} value={branch.staffCount} />}
+            {branch && <ReviewRow label={t("list.employees")} value={branch.employeeCount} />}
             <ReviewRow
               label={t("form.currency")}
-              value={watch("currency") || t("form.tenantDefaultCurrency")}
+              value={watch("currency") || t("form.companyDefaultCurrency")}
             />
-            <ReviewRow label={t("form.servicesOffered")} value={selectedServiceIds.size} />
           </dl>
         </section>
       </div>
@@ -668,35 +381,5 @@ function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-medium">{value || value === 0 ? value : "—"}</dd>
     </div>
-  );
-}
-
-/** Checkbox registered with RHF but rendered as a switch-style row. */
-function ToggleField({
-  label,
-  registration,
-  watchValue,
-}: {
-  label: string;
-  registration: UseFormRegisterReturn;
-  watchValue: boolean;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
-      <span className="text-sm">{label}</span>
-      <input type="checkbox" className="peer sr-only" {...registration} />
-      <span
-        aria-hidden="true"
-        className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          watchValue ? "bg-primary" : "bg-input"
-        }`}
-      >
-        <span
-          className={`h-4 w-4 rounded-full bg-card shadow-sm transition-[margin] ${
-            watchValue ? "ms-[18px]" : "ms-0.5"
-          }`}
-        />
-      </span>
-    </label>
   );
 }

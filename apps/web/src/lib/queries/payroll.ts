@@ -29,7 +29,7 @@ export function usePayrollRun(branchId: string | undefined, payrollMonth: string
 
 /**
  * Idempotent for the run itself — POSTing for an existing (branch, month)
- * just returns it, but the API also syncs in any staff newly eligible for
+ * just returns it, but the API also syncs in any employees newly eligible for
  * this branch since generation, so refresh the item/batch lists too.
  */
 export function useGeneratePayrollRun() {

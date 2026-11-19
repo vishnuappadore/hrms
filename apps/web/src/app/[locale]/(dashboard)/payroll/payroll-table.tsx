@@ -71,7 +71,7 @@ export function PayrollTable({
     }),
     { base: 0, allowances: 0, deductions: 0, net: 0 },
   );
-  const currency = items[0]?.currency ?? "OMR";
+  const currency = items[0]?.currency ?? "AED";
   const allSelected = selection ? items.length > 0 && items.every((i) => selection.isSelected(i.id)) : false;
   const pages = pagination ? Math.max(1, Math.ceil(pagination.meta.total / pagination.meta.pageSize)) : 1;
 
@@ -86,7 +86,7 @@ export function PayrollTable({
                   <Checkbox checked={allSelected} onChange={selection.onToggleAll} aria-label={t("bulk.selected", { count: items.length })} />
                 </th>
               )}
-              <th className="px-4 py-3 text-start">{t("columns.staff")}</th>
+              <th className="px-4 py-3 text-start">{t("columns.employee")}</th>
               <th className="px-4 py-3 text-end">{t("columns.base")}</th>
               <th className="px-4 py-3 text-end">{t("columns.allowances")}</th>
               <th className="px-4 py-3 text-end">{t("columns.deductions")}</th>
@@ -112,16 +112,16 @@ export function PayrollTable({
                         <Checkbox
                           checked={selection.isSelected(item.id)}
                           onChange={() => selection.onToggle(item.id)}
-                          aria-label={item.staff.name}
+                          aria-label={item.employee.name}
                         />
                       </td>
                     )}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <Avatar name={item.staff.name} />
+                        <Avatar name={item.employee.name} />
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-foreground">{item.staff.name}</div>
-                          <div className="truncate text-[10.5px] text-muted-foreground">{item.staff.role ?? "—"}</div>
+                          <div className="truncate font-medium text-foreground">{item.employee.name}</div>
+                          <div className="truncate text-[10.5px] text-muted-foreground">{item.employee.role ?? "—"}</div>
                         </div>
                       </div>
                     </td>

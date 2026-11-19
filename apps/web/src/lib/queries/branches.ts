@@ -15,7 +15,6 @@ export interface BranchListParams {
   page?: number;
   pageSize?: number;
   sort?: string;
-  type?: "corporate" | "franchise";
   status?: "active" | "inactive";
   search?: string;
 }
@@ -31,17 +30,6 @@ export type BranchDetail = Branch & {
   address: string;
   googleMapsUrl: string | null;
   workingHours: { openingTime: string; closingTime: string; weeklyOffDays: string[] };
-  allowOnlineBooking: boolean;
-  allowWalkIns: boolean;
-  enableLoyalty: boolean;
-  enableProductSales: boolean;
-  branchServices: { serviceId: string; isAvailable: boolean }[];
-  franchiseDetails: {
-    franchiseOwnerId: string;
-    agreementStartDate: string;
-    agreementExpiryDate: string;
-    owner: { id: string; ownerName: string; companyName: string };
-  } | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 };

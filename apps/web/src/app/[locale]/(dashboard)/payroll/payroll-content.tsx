@@ -272,7 +272,7 @@ export function PayrollContent() {
     const branch = branches.find((b) => b.id === branchId);
     const preview = await previewRun.mutateAsync({ branchId, payrollMonth: month });
     if (preview.totalEmployeeCount === 0) {
-      setMutationError(t("noEligibleStaff.body"));
+      setMutationError(t("noEligibleEmployees.body"));
       return;
     }
     setGenerateConfirmState({
@@ -525,7 +525,7 @@ export function PayrollContent() {
                           batch.id === effectiveSelectedBatchId ? "text-primary-foreground/80" : "text-muted-foreground",
                         )}
                       >
-                        {new Date(batch.performedAt).toLocaleDateString(locale)} · {t("batchStaffCount", { count: batch.count })}
+                        {new Date(batch.performedAt).toLocaleDateString(locale)} · {t("batchEmployeeCount", { count: batch.count })}
                       </div>
                     </button>
                   ))

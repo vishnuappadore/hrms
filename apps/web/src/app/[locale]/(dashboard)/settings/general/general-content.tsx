@@ -39,10 +39,10 @@ export function GeneralContent() {
     resolver: zodResolver(UpdateGeneralSettingsSchema),
     defaultValues: {
       defaultLocale: "en",
-      timezone: "Asia/Muscat",
-      defaultCurrency: "OMR",
+      timezone: "Asia/Dubai",
+      defaultCurrency: "AED",
       useWesternNumeralsInArabic: true,
-      weekStartsOn: "sunday",
+      weekStartsOn: "monday",
     },
   });
 
@@ -63,17 +63,11 @@ export function GeneralContent() {
       await update.mutateAsync(values);
       showToast(tc("savedSuccessfully"));
     } catch (error) {
-      const code =
-        error instanceof ApiError && error.code === "TENANT_CURRENCY_LOCKED"
-          ? error.code
-          : error instanceof ApiError && error.code === "VALIDATION_FAILED"
-            ? error.code
-            : "GENERIC";
-      setServerError(code === "TENANT_CURRENCY_LOCKED" ? t("errors.currencyLocked") : tc(`errors.${code}`));
+      const code = error instanceof ApiError && error.code === "VALIDATION_FAILED" ? error.code : "GENERIC";
+      setServerError(tc(`errors.${code}`));
     }
   }
 
-  const currencyLocked = (data?.branchCount ?? 0) > 0;
   const useWesternNumeralsInArabic = watch("useWesternNumeralsInArabic");
   const weekStartsOn = watch("weekStartsOn");
 
@@ -99,15 +93,14 @@ export function GeneralContent() {
               </Select>
             </Field>
             <Field label={t("fields.timezone")} htmlFor="general-timezone" error={errors.timezone?.message}>
-              <Input id="general-timezone" dir="ltr" placeholder="Asia/Muscat" {...register("timezone")} />
+              <Input id="general-timezone" dir="ltr" placeholder="Asia/Dubai" {...register("timezone")} />
             </Field>
             <Field
               label={t("fields.defaultCurrency")}
               htmlFor="general-currency"
               error={errors.defaultCurrency?.message}
-              hint={currencyLocked ? t("currencyLockedHint") : undefined}
             >
-              <Select id="general-currency" disabled={currencyLocked} {...register("defaultCurrency")}>
+              <Select id="general-currency" {...register("defaultCurrency")}>
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>
                     {c}

@@ -30,16 +30,16 @@ export function AttendanceMonthlyDetailDialog({
   onClose,
   onOpenDay,
 }: {
-  target: { staffProfileId: string; name: string } | null;
+  target: { employeeProfileId: string; name: string } | null;
   /** "YYYY-MM" — the month selected in the Monthly view (not "now"). */
   month: string;
   onClose: () => void;
-  onOpenDay: (staffProfileId: string, date: string) => void;
+  onOpenDay: (employeeProfileId: string, date: string) => void;
 }) {
   const t = useTranslations("attendance.monthlyDetail");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const { data, isLoading } = useAttendanceMonthlyDetail(target?.staffProfileId, month);
+  const { data, isLoading } = useAttendanceMonthlyDetail(target?.employeeProfileId, month);
 
   return (
     <Dialog
@@ -96,7 +96,7 @@ export function AttendanceMonthlyDetailDialog({
                             type="button"
                             aria-label={t("viewLog")}
                             className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-card text-muted-foreground transition hover:bg-muted"
-                            onClick={() => onOpenDay(target.staffProfileId, dateStr)}
+                            onClick={() => onOpenDay(target.employeeProfileId, dateStr)}
                           >
                             <Clock className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
                           </button>

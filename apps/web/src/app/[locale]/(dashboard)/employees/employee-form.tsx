@@ -10,13 +10,13 @@ import {
   assertBranchAssignment,
   assertCommissionRate,
   assertPrimaryBranchAssigned,
-  CreateStaffSchema,
+  CreateEmployeeSchema,
   formatMoney,
   fromMinorUnits,
   percentOf,
   toMinorUnits,
-  type CreateStaffInput,
-  type Staff,
+  type CreateEmployeeInput,
+  type Employee,
 } from "@keystonehr/shared";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
@@ -36,12 +36,12 @@ import { Stepper } from "@/components/ui/stepper";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { useBranches } from "@/lib/queries/branches";
+import { useCreateEmployee, useMe, useRoles, useUpdateEmployee, useEmployees } from "@/lib/queries/employees";
 import { usePayrollComponents } from "@/lib/queries/payroll-components";
-import { useCreateUser, useMe, useRoles, useUpdateUser, useUsers } from "@/lib/queries/users";
 
-const BaseSchema = CreateStaffSchema.innerType();
+const BaseSchema = CreateEmployeeSchema.innerType();
 
-function superRefineStaff(
+function superRefineEmployee(
   v: Omit<z.infer<typeof BaseSchema>, "password">,
   ctx: z.RefinementCtx,
 ) {
@@ -52,14 +52,14 @@ function superRefineStaff(
 
 const CreateFormSchema = BaseSchema.extend({ confirmPassword: z.string() }).superRefine(
   (v, ctx) => {
-    superRefineStaff(v, ctx);
+    superRefineEmployee(v, ctx);
     if (v.password !== v.confirmPassword) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "passwordMismatch" });
     }
   },
 );
 
-const EditFormSchema = BaseSchema.omit({ password: true }).superRefine(superRefineStaff);
+const EditFormSchema = BaseSchema.omit({ password: true }).superRefine(superRefineEmployee);
 
 type FormValues = z.infer<typeof CreateFormSchema>;
 
@@ -86,23 +86,23 @@ const FIELD_ERROR_KEYS: Record<string, string> = {
   commissionRatePct: "commissionRateRequired",
 };
 
-export function StaffForm({ user }: { user?: Staff }) {
-  const t = useTranslations("staff");
+export function EmployeeForm({ user }: { user?: Employee }) {
+  const t = useTranslations("employees");
   const tc = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
-  const createUser = useCreateUser();
-  const updateUser = useUpdateUser(user?.id ?? "");
+  const createUser = useCreateEmployee();
+  const updateUser = useUpdateEmployee(user?.id ?? "");
   const roles = useRoles();
   const branches = useBranches({ pageSize: 100 });
-  const users = useUsers({ pageSize: 100 });
+  const users = useEmployees({ pageSize: 100 });
   const allowanceComponents = usePayrollComponents("allowance");
   const deductionComponents = usePayrollComponents("deduction");
   const { data: me } = useMe();
   const permissions = usePermissions();
   const canSave =
-    permissions.includes(user ? "staff.update" : "staff.create") &&
-    permissions.includes("staff.employment.manage");
+    permissions.includes(user ? "employee.update" : "employee.create") &&
+    permissions.includes("employee.employment.manage");
   const { showToast } = useToast();
   const [serverError, setServerError] = useState<string | null>(null);
   const [step, setStep] = useState(0);
@@ -133,7 +133,7 @@ export function StaffForm({ user }: { user?: Staff }) {
           email: user.email ?? "",
           mobile: user.mobile ?? "",
           gender: user.gender ?? undefined,
-          staffStatus: user.staffStatus,
+          employeeStatus: user.employeeStatus,
           primaryBranchId: user.primaryBranchId ?? undefined,
           employmentType: user.employmentType ?? undefined,
           joiningDate: (toDateInputValue(user.joiningDate) || undefined) as unknown as Date,
@@ -157,7 +157,7 @@ export function StaffForm({ user }: { user?: Staff }) {
         }
       : {
           gender: "male",
-          staffStatus: "active",
+          employeeStatus: "active",
           status: "active",
           locale: "en",
           allBranches: false,
@@ -177,7 +177,7 @@ export function StaffForm({ user }: { user?: Staff }) {
   const currency =
     (branches.data?.data ?? []).find((b) => b.id === primaryBranchId)?.currency ??
     me?.currency ??
-    "OMR";
+    "AED";
   const baseSalaryMinor = watch("baseSalaryMinor") ?? 0;
   const commissionEnabled = watch("commissionEnabled");
   const allowanceValues = watch("allowances") ?? [];
@@ -209,7 +209,7 @@ export function StaffForm({ user }: { user?: Staff }) {
     return () => clearTimeout(handle);
   }, [primaryBranchId, allBranches]);
 
-  // Reporting Manager is narrowed to staff with access to the Primary Branch
+  // Reporting Manager is narrowed to employees with access to the Primary Branch
   // (see managerOptions below); clear a selection the narrowing just orphaned.
   useEffect(() => {
     const currentManagerId = watch("reportingManagerId");
@@ -218,7 +218,7 @@ export function StaffForm({ user }: { user?: Staff }) {
     }
   }, [primaryBranchId]);
 
-  // Live "already taken" check using the staff list already loaded above for
+  // Live "already taken" check using the employees list already loaded above for
   // Reporting Manager — no new request. Case-sensitive for username,
   // case-insensitive for email, matching assertNoConflict's real semantics.
   // Only clears an error this effect itself set, never a schema error (e.g.
@@ -284,7 +284,7 @@ export function StaffForm({ user }: { user?: Staff }) {
     {
       key: "basicProfile",
       title: t("form.stepBasicProfile"),
-      fields: ["name", "username", "mobile", "email", "gender", "staffStatus"],
+      fields: ["name", "username", "mobile", "email", "gender", "employeeStatus"],
     },
     {
       key: "employment",
@@ -374,10 +374,10 @@ export function StaffForm({ user }: { user?: Staff }) {
         await updateUser.mutateAsync(rest);
       } else {
         const { confirmPassword: _c, ...input } = values;
-        await createUser.mutateAsync(input as CreateStaffInput);
+        await createUser.mutateAsync(input as CreateEmployeeInput);
       }
       showToast(tc("savedSuccessfully"));
-      router.replace("/staff");
+      router.replace("/employees");
       router.refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "NETWORK";
@@ -428,13 +428,13 @@ export function StaffForm({ user }: { user?: Staff }) {
     const component = components.find((c) => c.id === componentId);
     if (!component) return;
     if (component.basis === "fixed_amount") {
-      // defaultAmountMinor is minted in the tenant's default currency (Settings
+      // defaultAmountMinor is minted in the company's default currency (Settings
       // > Payroll Components has no branch context). Only trust it when the
-      // staff member's branch currency matches — otherwise leave it for the
+      // employee's branch currency matches — otherwise leave it for the
       // admin to enter manually rather than silently prefilling the wrong
       // currency/magnitude (there's no FX conversion anywhere in money.ts).
-      const tenantCurrency = me?.currency ?? "OMR";
-      setValue(fieldName, currency === tenantCurrency ? (component.defaultAmountMinor ?? 0) : 0);
+      const companyCurrency = me?.currency ?? "AED";
+      setValue(fieldName, currency === companyCurrency ? (component.defaultAmountMinor ?? 0) : 0);
       return;
     }
     setValue(fieldName, percentOf(baseSalaryMinor, component.defaultRatePct ?? 0));
@@ -493,19 +493,19 @@ export function StaffForm({ user }: { user?: Staff }) {
               )}
             />
           </Field>
-          <Field label={t("form.staffStatus")} required>
+          <Field label={t("form.employeeStatus")} required>
             <Controller
               control={control}
-              name="staffStatus"
+              name="employeeStatus"
               render={({ field }) => (
                 <SegmentedControl
-                  aria-label={t("form.staffStatus")}
+                  aria-label={t("form.employeeStatus")}
                   value={field.value}
                   onChange={field.onChange}
                   options={[
-                    { value: "active", label: t("form.staffStatusActive") },
-                    { value: "on_leave", label: t("form.staffStatusOnLeave") },
-                    { value: "inactive", label: t("form.staffStatusInactive") },
+                    { value: "active", label: t("form.employeeStatusActive") },
+                    { value: "on_leave", label: t("form.employeeStatusOnLeave") },
+                    { value: "inactive", label: t("form.employeeStatusInactive") },
                   ]}
                 />
               )}
@@ -864,7 +864,7 @@ export function StaffForm({ user }: { user?: Staff }) {
           {isLast ? (
             canSave && (
               <Button type="button" disabled={isSubmitting} onClick={submitForm}>
-                {isSubmitting ? tc("saving") : user ? tc("save") : t("form.addStaff")}
+                {isSubmitting ? tc("saving") : user ? tc("save") : t("form.addEmployee")}
               </Button>
             )
           ) : (

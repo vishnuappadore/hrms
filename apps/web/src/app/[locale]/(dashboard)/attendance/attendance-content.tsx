@@ -57,10 +57,10 @@ export function AttendanceContent() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const [sessionTarget, setSessionTarget] = useState<{ staffProfileId: string; date: string } | null>(
+  const [sessionTarget, setSessionTarget] = useState<{ employeeProfileId: string; date: string } | null>(
     null,
   );
-  const [monthlyTarget, setMonthlyTarget] = useState<{ staffProfileId: string; name: string } | null>(
+  const [monthlyTarget, setMonthlyTarget] = useState<{ employeeProfileId: string; name: string } | null>(
     null,
   );
 
@@ -86,15 +86,15 @@ export function AttendanceContent() {
   const todayColumns = useMemo<ColumnDef<AttendanceDaySummary>[]>(
     () => [
       {
-        id: "staff",
-        header: t("table.staff"),
+        id: "employee",
+        header: t("table.employee"),
         cell: ({ row }) => (
           <div className="flex items-center gap-2.5">
-            <Avatar name={row.original.staff.name} />
+            <Avatar name={row.original.employee.name} />
             <div className="min-w-0">
-              <p className="truncate font-medium">{row.original.staff.name}</p>
-              {row.original.staff.branchName && (
-                <p className="truncate text-xs text-muted-foreground">{row.original.staff.branchName}</p>
+              <p className="truncate font-medium">{row.original.employee.name}</p>
+              {row.original.employee.branchName && (
+                <p className="truncate text-xs text-muted-foreground">{row.original.employee.branchName}</p>
               )}
             </div>
           </div>
@@ -133,7 +133,7 @@ export function AttendanceContent() {
             label={t("table.viewLog")}
             onClick={() =>
               setSessionTarget({
-                staffProfileId: row.original.staff.id,
+                employeeProfileId: row.original.employee.id,
                 date: row.original.date.toString().slice(0, 10),
               })
             }
@@ -154,15 +154,15 @@ export function AttendanceContent() {
   const monthlyColumns = useMemo<ColumnDef<AttendanceMonthlyAggregate>[]>(
     () => [
       {
-        id: "staff",
-        header: t("table.staff"),
+        id: "employee",
+        header: t("table.employee"),
         cell: ({ row }) => (
           <div className="flex items-center gap-2.5">
-            <Avatar name={row.original.staff.name} />
+            <Avatar name={row.original.employee.name} />
             <div className="min-w-0">
-              <p className="truncate font-medium">{row.original.staff.name}</p>
-              {row.original.staff.branchName && (
-                <p className="truncate text-xs text-muted-foreground">{row.original.staff.branchName}</p>
+              <p className="truncate font-medium">{row.original.employee.name}</p>
+              {row.original.employee.branchName && (
+                <p className="truncate text-xs text-muted-foreground">{row.original.employee.branchName}</p>
               )}
             </div>
           </div>
@@ -188,7 +188,7 @@ export function AttendanceContent() {
         cell: ({ row }) => (
           <IconButton
             label={t("table.viewMonthly")}
-            onClick={() => setMonthlyTarget({ staffProfileId: row.original.staff.id, name: row.original.staff.name })}
+            onClick={() => setMonthlyTarget({ employeeProfileId: row.original.employee.id, name: row.original.employee.name })}
           >
             <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
           </IconButton>
@@ -314,7 +314,7 @@ export function AttendanceContent() {
         target={monthlyTarget}
         month={month}
         onClose={() => setMonthlyTarget(null)}
-        onOpenDay={(staffProfileId, dateStr) => setSessionTarget({ staffProfileId, date: dateStr })}
+        onOpenDay={(employeeProfileId, dateStr) => setSessionTarget({ employeeProfileId, date: dateStr })}
       />
     </div>
   );

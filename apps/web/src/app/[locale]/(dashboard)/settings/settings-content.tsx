@@ -2,13 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import {
-  Bell,
   Building2,
-  CalendarClock,
   CalendarOff,
-  Gift,
-  ReceiptText,
-  Scissors,
   SlidersHorizontal,
   Wallet,
   type LucideIcon,
@@ -18,20 +13,15 @@ import { Badge } from "@/components/ui/badge";
 import { usePermissions } from "@/lib/permissions";
 
 /* `requiredPermission` matches each section's actual read-gate on the API, confirmed per
-   controller — not a blanket "settings.manage" (Payroll Components reads via `staff.view`, Leave
-   Settings via `leave.request`, both intentionally broader than an admin-only key since any staff
-   member who can use those flows can also read their configuration). Sections with no `href` are
+   controller — not a blanket "settings.manage" (Payroll Components reads via `employee.view`, Leave
+   Settings via `leave.request`, both intentionally broader than an admin-only key since any employee
+   who can use those flows can also read their configuration). Sections with no `href` are
    unbuilt "coming soon" placeholders — nothing to gate. */
 const SECTIONS: { key: string; href?: string; requiredPermission?: string; icon: LucideIcon }[] = [
-  { key: "services", href: "/settings/services", requiredPermission: "services.view", icon: Scissors },
-  { key: "payroll", href: "/settings/payroll-components", requiredPermission: "staff.view", icon: Wallet },
+  { key: "payroll", href: "/settings/payroll-components", requiredPermission: "employee.view", icon: Wallet },
   { key: "leave", href: "/settings/leave-settings", requiredPermission: "leave.request", icon: CalendarOff },
   { key: "general", href: "/settings/general", requiredPermission: "settings.general.manage", icon: SlidersHorizontal },
   { key: "company", href: "/settings/company", requiredPermission: "settings.company.manage", icon: Building2 },
-  { key: "loyalty", icon: Gift },
-  { key: "appointments", icon: CalendarClock },
-  { key: "taxes", icon: ReceiptText },
-  { key: "notifications", icon: Bell },
 ];
 
 export function SettingsContent() {

@@ -159,7 +159,7 @@ export function PayslipDialog({
     <Dialog
       open={itemId !== null}
       onClose={close}
-      title={`${t("title", { name: detail.staff.name })} · ${monthYearLabel(detail.payrollMonth, locale)}`}
+      title={`${t("title", { name: detail.employee.name })} · ${monthYearLabel(detail.payrollMonth, locale)}`}
       className="max-w-3xl"
       showCloseButton
       closeLabel={tc("close")}
@@ -167,22 +167,22 @@ export function PayslipDialog({
       <div className="max-h-[70vh] space-y-4 overflow-y-auto pe-1">
         <div className="flex items-start justify-between gap-4 rounded-xl border border-border bg-muted/30 p-4">
           <div className="flex items-start gap-3">
-            <Avatar name={detail.staff.name} className="h-14 w-14 text-base" />
+            <Avatar name={detail.employee.name} className="h-14 w-14 text-base" />
             <div>
-              <div className="text-base font-semibold text-foreground">{detail.staff.name}</div>
+              <div className="text-base font-semibold text-foreground">{detail.employee.name}</div>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <Briefcase className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-                  {detail.staff.role ?? "—"}
+                  {detail.employee.role ?? "—"}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-                  {localizedName(detail.staff.branchNameEn, detail.staff.branchNameAr)}
+                  {localizedName(detail.employee.branchNameEn, detail.employee.branchNameAr)}
                 </span>
-                {detail.staff.joiningDate && (
+                {detail.employee.joiningDate && (
                   <span className="inline-flex items-center gap-1.5">
                     <CalendarDays className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
-                    {t("doj")}: {new Date(detail.staff.joiningDate).toLocaleDateString(locale)}
+                    {t("doj")}: {new Date(detail.employee.joiningDate).toLocaleDateString(locale)}
                   </span>
                 )}
               </div>

@@ -98,14 +98,14 @@ export function LeaveContent() {
   const columns = useMemo<ColumnDef<LeaveRequestSummary>[]>(
     () => [
       {
-        id: "staff",
-        header: t("table.staff"),
+        id: "employee",
+        header: t("table.employee"),
         cell: ({ row }) => (
           <div className="flex items-center gap-2.5">
-            <Avatar name={row.original.staff.name} />
+            <Avatar name={row.original.employee.name} />
             <div className="min-w-0">
-              <p className="truncate font-medium">{row.original.staff.name}</p>
-              <p className="truncate text-[10.5px] text-muted-foreground">{row.original.staff.role ?? "—"}</p>
+              <p className="truncate font-medium">{row.original.employee.name}</p>
+              <p className="truncate text-[10.5px] text-muted-foreground">{row.original.employee.role ?? "—"}</p>
             </div>
           </div>
         ),

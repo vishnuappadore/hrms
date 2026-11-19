@@ -2,20 +2,13 @@
 
 import {
   Banknote,
-  BarChart3,
   CalendarCheck,
-  CalendarDays,
   CalendarOff,
-  Footprints,
-  Gift,
   LayoutDashboard,
-  Package,
   Settings,
   ShieldCheck,
-  ShoppingCart,
   Store,
   UserCog,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -23,24 +16,9 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/cn";
 import { usePermissions } from "@/lib/permissions";
 
-type NavKey =
-  | "dashboard"
-  | "appointments"
-  | "pos"
-  | "walkInQueue"
-  | "customers"
-  | "loyalty"
-  | "staff"
-  | "attendance"
-  | "leave"
-  | "payroll"
-  | "inventory"
-  | "branches"
-  | "reports"
-  | "roles"
-  | "settings";
+type NavKey = "dashboard" | "employees" | "attendance" | "leave" | "payroll" | "branches" | "roles" | "settings";
 
-type NavSection = "operations" | "people" | "business" | "administration";
+type NavSection = "people" | "business" | "administration";
 
 type NavGroup = {
   section: NavSection;
@@ -50,24 +28,14 @@ type NavGroup = {
 /* Nav grouped into labelled sections (matches the approved claude.ai console design).
    Order is preserved; NAV_ITEMS below is derived from this for the topbar title.
    `requiredPermission` is only set where a real, enforced permission key exists for the page
-   behind it — items for unbuilt features (dashboard/loyalty/reports) have none and stay
-   unconditionally visible; that's a feature-completeness gap, not a permission one. */
+   behind it — the dashboard landing page (just the self-service check-in widget) has none and
+   stays unconditionally visible to every signed-in user. */
 export const NAV_GROUPS: NavGroup[] = [
-  {
-    section: "operations",
-    items: [
-      { key: "dashboard", href: "/dashboard" },
-      { key: "appointments", href: "/appointments", requiredPermission: "appointments.view" },
-      { key: "pos", href: "/pos", requiredPermission: "pos.use" },
-      { key: "walkInQueue", href: "/queue", requiredPermission: "walkin.view" },
-      { key: "customers", href: "/customers", requiredPermission: "customers.view" },
-      { key: "loyalty", href: "/loyalty" },
-    ],
-  },
   {
     section: "people",
     items: [
-      { key: "staff", href: "/staff", requiredPermission: "staff.view" },
+      { key: "dashboard", href: "/dashboard" },
+      { key: "employees", href: "/employees", requiredPermission: "employee.view" },
       { key: "attendance", href: "/attendance", requiredPermission: "attendance.view" },
       { key: "leave", href: "/leave", requiredPermission: "leave.view" },
       { key: "payroll", href: "/payroll", requiredPermission: "payroll.view" },
@@ -75,11 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     section: "business",
-    items: [
-      { key: "inventory", href: "/inventory", requiredPermission: "inventory.view" },
-      { key: "branches", href: "/branches", requiredPermission: "branches.view" },
-      { key: "reports", href: "/reports" },
-    ],
+    items: [{ key: "branches", href: "/branches", requiredPermission: "branches.view" }],
   },
   {
     section: "administration",
@@ -111,18 +75,11 @@ export function findActiveNavKey(pathname: string): NavKey | undefined {
 
 const ICONS: Record<NavKey, LucideIcon> = {
   dashboard: LayoutDashboard,
-  appointments: CalendarDays,
-  pos: ShoppingCart,
-  walkInQueue: Footprints,
-  customers: Users,
-  loyalty: Gift,
-  staff: UserCog,
+  employees: UserCog,
   attendance: CalendarCheck,
   leave: CalendarOff,
   payroll: Banknote,
-  inventory: Package,
   branches: Store,
-  reports: BarChart3,
   roles: ShieldCheck,
   settings: Settings,
 };

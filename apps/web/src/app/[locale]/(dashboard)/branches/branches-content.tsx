@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ColumnDef } from "@tanstack/react-table";
-import { formatMoney, type Branch } from "@keystonehr/shared";
+import type { Branch } from "@keystonehr/shared";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,6 @@ import {
   SearchX,
   Store,
   Users,
-  Wallet,
 } from "lucide-react";
 import { usePermissions } from "@/lib/permissions";
 import { DataTable } from "@/components/data-table";
@@ -44,14 +43,6 @@ export function BranchesContent() {
   const { data, isLoading, isError } = useBranches(params);
   const stats = useBranchStats();
 
-  // Revenue joins with the POS/finance module; until it returns a figure the
-  // KpiCard falls back to its "—" empty state.
-  const revenue = stats.data?.revenue;
-  const revenueValue =
-    revenue == null
-      ? undefined
-      : formatMoney(revenue, stats.data?.revenueCurrency ?? "OMR", locale);
-
   // debounce free-text search into the query params
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -77,11 +68,6 @@ export function BranchesContent() {
           </span>
         ),
       },
-      {
-        id: "type",
-        header: t("list.type"),
-        cell: ({ row }) => t(`type.${row.original.type}`),
-      },
       { id: "city", header: t("list.city"), accessorKey: "city", enableSorting: true },
       {
         id: "manager",
@@ -90,9 +76,9 @@ export function BranchesContent() {
           row.original.manager?.name ?? <span className="text-muted-foreground">—</span>,
       },
       {
-        id: "staff",
-        header: t("list.staff"),
-        cell: ({ row }) => <span className="tabular-nums">{row.original.staffCount}</span>,
+        id: "employees",
+        header: t("list.employees"),
+        cell: ({ row }) => <span className="tabular-nums">{row.original.employeeCount}</span>,
       },
       {
         id: "status",
@@ -139,14 +125,8 @@ export function BranchesContent() {
         </div>
       </div>
 
-      {/* KPI cards — appointments card joins with its module */}
-      <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        <KpiCard
-          label={t("kpis.revenue")}
-          value={revenueValue}
-          icon={Wallet}
-          loading={stats.isLoading}
-        />
+      {/* KPI cards */}
+      <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label={t("kpis.total")}
           value={stats.data?.total}
@@ -166,8 +146,8 @@ export function BranchesContent() {
           loading={stats.isLoading}
         />
         <KpiCard
-          label={t("kpis.staff")}
-          value={stats.data?.staff}
+          label={t("kpis.employees")}
+          value={stats.data?.employees}
           icon={Users}
           loading={stats.isLoading}
         />
@@ -180,22 +160,6 @@ export function BranchesContent() {
           placeholder={tc("search")}
           className="max-w-64"
         />
-        <Select
-          value={params.type ?? ""}
-          onChange={(e) =>
-            setParams({
-              ...params,
-              type: (e.target.value || undefined) as BranchListParams["type"],
-              page: 1,
-            })
-          }
-          className="w-44"
-          aria-label={t("list.type")}
-        >
-          <option value="">{t("filters.allTypes")}</option>
-          <option value="corporate">{t("type.corporate")}</option>
-          <option value="franchise">{t("type.franchise")}</option>
-        </Select>
         <Select
           value={params.status ?? ""}
           onChange={(e) =>

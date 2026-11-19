@@ -11,7 +11,7 @@ import { BackLink } from "@/components/back-link";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useMe } from "@/lib/queries/users";
+import { useMe } from "@/lib/queries/employees";
 import { usePayrollComponents, useSavePayrollComponents } from "@/lib/queries/payroll-components";
 
 interface ComponentRow {
@@ -39,7 +39,7 @@ function toRow(component: PayrollComponent, currency: string): ComponentRow {
 export function PayrollComponentsContent() {
   const t = useTranslations("settings.payrollComponents");
   const { data: me } = useMe();
-  const currency = me?.currency ?? "OMR";
+  const currency = me?.currency ?? "AED";
 
   return (
     <div className="space-y-6">

@@ -50,7 +50,7 @@ export function CancelLeaveDialog({
   }
 
   return (
-    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.staff.name ?? "" })}>
+    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.employee.name ?? "" })}>
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{t("body")}</p>
         <Field label={t("reason")} htmlFor="cancel-reason" required error={error ?? undefined}>

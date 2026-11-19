@@ -42,19 +42,19 @@ export function useAttendanceKpis(params: Omit<AttendanceListParams, "page" | "p
   });
 }
 
-export function useAttendanceDay(staffProfileId: string | undefined, date: string | undefined) {
+export function useAttendanceDay(employeeProfileId: string | undefined, date: string | undefined) {
   return useQuery({
-    queryKey: ["attendance", "day", staffProfileId, date],
-    queryFn: () => api<AttendanceDayDetail>(`/attendance/${staffProfileId}/days/${date}`),
-    enabled: !!staffProfileId && !!date,
+    queryKey: ["attendance", "day", employeeProfileId, date],
+    queryFn: () => api<AttendanceDayDetail>(`/attendance/${employeeProfileId}/days/${date}`),
+    enabled: !!employeeProfileId && !!date,
   });
 }
 
-export function useAttendanceMonthlyDetail(staffProfileId: string | undefined, month: string | undefined) {
+export function useAttendanceMonthlyDetail(employeeProfileId: string | undefined, month: string | undefined) {
   return useQuery({
-    queryKey: ["attendance", "monthly-detail", staffProfileId, month],
-    queryFn: () => api<AttendanceMonthlyDetail>(`/attendance/${staffProfileId}/monthly?month=${month}`),
-    enabled: !!staffProfileId && !!month,
+    queryKey: ["attendance", "monthly-detail", employeeProfileId, month],
+    queryFn: () => api<AttendanceMonthlyDetail>(`/attendance/${employeeProfileId}/monthly?month=${month}`),
+    enabled: !!employeeProfileId && !!month,
   });
 }
 
@@ -62,15 +62,15 @@ export function useUpdateAttendanceDay() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
-      staffProfileId,
+      employeeProfileId,
       date,
       input,
     }: {
-      staffProfileId: string;
+      employeeProfileId: string;
       date: string;
       input: UpdateAttendanceDayInput;
     }) =>
-      api<AttendanceDayDetail>(`/attendance/${staffProfileId}/days/${date}`, {
+      api<AttendanceDayDetail>(`/attendance/${employeeProfileId}/days/${date}`, {
         method: "PATCH",
         body: JSON.stringify(input),
       }),

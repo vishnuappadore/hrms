@@ -60,11 +60,11 @@ export function useMyLeaveBalances() {
   });
 }
 
-export function useLeaveBalances(staffProfileId: string | undefined) {
+export function useLeaveBalances(employeeProfileId: string | undefined) {
   return useQuery({
-    queryKey: ["leave", "balances", staffProfileId],
-    queryFn: () => api<LeaveBalance[]>(`/leave/balances/${staffProfileId}`),
-    enabled: !!staffProfileId,
+    queryKey: ["leave", "balances", employeeProfileId],
+    queryFn: () => api<LeaveBalance[]>(`/leave/balances/${employeeProfileId}`),
+    enabled: !!employeeProfileId,
   });
 }
 

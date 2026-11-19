@@ -42,7 +42,7 @@ export function PayrollConfirmDialog({
   const items = state && "items" in state ? state.items : [];
   const selectAllCount = state && "selectAllCount" in state ? state.selectAllCount : null;
   const total = items.reduce((sum, i) => sum + i.netPayMinor, 0);
-  const currency = items[0]?.currency ?? "OMR";
+  const currency = items[0]?.currency ?? "AED";
   const isApprove = state?.action === "approve";
 
   return (
@@ -50,11 +50,11 @@ export function PayrollConfirmDialog({
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">{isApprove ? t("approveBody") : t("rejectBody")}</p>
         {selectAllCount !== null ? (
-          <StatTile label={t("staffCount")} value={selectAllCount} />
+          <StatTile label={t("employeeCount")} value={selectAllCount} />
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <StatTile label={t("staffCount")} value={items.length} />
+              <StatTile label={t("employeeCount")} value={items.length} />
               <StatTile label={t("amount")} value={formatMoney(total, currency, locale)} />
             </div>
             <div className="max-h-48 space-y-1.5 overflow-y-auto">
@@ -63,7 +63,7 @@ export function PayrollConfirmDialog({
                   key={i.id}
                   className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2 text-sm"
                 >
-                  <span className="truncate">{i.staff.name}</span>
+                  <span className="truncate">{i.employee.name}</span>
                   <span className="font-medium">{formatMoney(i.netPayMinor, i.currency, locale)}</span>
                 </div>
               ))}

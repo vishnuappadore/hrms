@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useMe } from "@/lib/queries/users";
+import { useMe } from "@/lib/queries/employees";
 import { MyLeavePanel } from "../leave/my-leave-panel";
 
 const TABS = ["profile", "salary", "leave", "attendance", "notifications", "contactHq"] as const;

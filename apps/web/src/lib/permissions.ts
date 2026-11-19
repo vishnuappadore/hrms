@@ -1,6 +1,6 @@
 "use client";
 
-import { useMe } from "@/lib/queries/users";
+import { useMe } from "@/lib/queries/employees";
 
 /**
  * The signed-in user's permission keys, for client-side UI hiding only — never a security

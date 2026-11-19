@@ -26,12 +26,6 @@ function LoginContent({ demo }: { demo: { identifier: string; password: string }
   const t = useTranslations("login");
   const tc = useTranslations("common");
 
-  const stats = [
-    { value: "8", label: t("statBranches") },
-    { value: "12k+", label: t("statMembers") },
-    { value: "4.9★", label: t("statRating") },
-  ];
-
   return (
     <main className="relative flex min-h-screen">
       {/* Brand panel — dark shell with soft brand glows (lg and up) */}
@@ -67,20 +61,6 @@ function LoginContent({ demo }: { demo: { identifier: string; password: string }
           <p className="mt-4 text-[15px] font-light leading-relaxed text-sidebar-muted-foreground">
             {t("brandSub")}
           </p>
-        </div>
-
-        <div className="relative flex items-stretch gap-7">
-          {stats.map((stat, i) => (
-            <div key={stat.label} className="flex items-stretch gap-7">
-              {i > 0 && <div aria-hidden="true" className="w-px bg-white/10" />}
-              <div>
-                <div className="text-[22px] font-semibold">{stat.value}</div>
-                <div className="mt-0.5 text-[11px] text-sidebar-muted-foreground">
-                  {stat.label}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </aside>
 

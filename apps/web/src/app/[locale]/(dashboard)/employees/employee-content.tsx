@@ -15,19 +15,19 @@ import { IconActionButton, IconActionLink } from "@/components/ui/icon-action-bu
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useBranches } from "@/lib/queries/branches";
-import { useRoles, useUsers, type UserListParams } from "@/lib/queries/users";
+import { useEmployees, useRoles, type EmployeeListParams } from "@/lib/queries/employees";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 
-export function StaffContent() {
-  const t = useTranslations("staff");
+export function EmployeeContent() {
+  const t = useTranslations("employees");
   const tc = useTranslations("common");
   const locale = useLocale();
   const permissions = usePermissions();
 
-  const [params, setParams] = useState<UserListParams>({ page: 1, pageSize: 25 });
+  const [params, setParams] = useState<EmployeeListParams>({ page: 1, pageSize: 25 });
   const [searchInput, setSearchInput] = useState("");
   const [resetTarget, setResetTarget] = useState<User | null>(null);
-  const { data, isLoading, isError } = useUsers(params);
+  const { data, isLoading, isError } = useEmployees(params);
   const roles = useRoles();
   const { data: branchesData } = useBranches({ page: 1, pageSize: 100, status: "active" });
   const branches = branchesData?.data ?? [];
@@ -118,7 +118,7 @@ export function StaffContent() {
         header: tc("actions"),
         cell: ({ row }) => (
           <div className="flex items-center justify-end gap-1.5">
-            {permissions.includes("staff.update") && (
+            {permissions.includes("employee.update") && (
               <IconActionButton
                 variant="view"
                 label={t("resetPassword.action")}
@@ -127,7 +127,7 @@ export function StaffContent() {
                 <KeyRound className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
               </IconActionButton>
             )}
-            <IconActionLink variant="edit" label={tc("edit")} href={`/staff/${row.original.id}`}>
+            <IconActionLink variant="edit" label={tc("edit")} href={`/employees/${row.original.id}`}>
               <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
             </IconActionLink>
           </div>
@@ -144,9 +144,10 @@ export function StaffContent() {
           <h1 className="text-xl font-semibold">{t("title")}</h1>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        {permissions.includes("staff.create") && permissions.includes("staff.employment.manage") && (
-          <ButtonLink href="/staff/new">+ {t("addUser")}</ButtonLink>
-        )}
+        {permissions.includes("employee.create") &&
+          permissions.includes("employee.employment.manage") && (
+            <ButtonLink href="/employees/new">+ {t("addUser")}</ButtonLink>
+          )}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -187,7 +188,7 @@ export function StaffContent() {
           onChange={(e) =>
             setParams({
               ...params,
-              status: (e.target.value || undefined) as UserListParams["status"],
+              status: (e.target.value || undefined) as EmployeeListParams["status"],
               page: 1,
             })
           }

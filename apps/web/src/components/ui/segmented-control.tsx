@@ -14,7 +14,7 @@ interface SegmentedControlProps<T extends string> {
   "aria-label"?: string;
 }
 
-/** Single-select pill group (radiogroup semantics) — Gender, Staff Status, Employment Type. */
+/** Single-select pill group (radiogroup semantics) — Gender, Employee Status, Employment Type. */
 export function SegmentedControl<T extends string>({
   options,
   value,

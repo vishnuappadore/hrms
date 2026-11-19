@@ -32,7 +32,7 @@ function todayString(): string {
 
 const BLANK: CreateLeaveRequestInput = {
   leaveTypeId: "",
-  staffProfileId: undefined,
+  employeeProfileId: undefined,
   startDate: todayString() as unknown as Date,
   endDate: todayString() as unknown as Date,
   startHalfDay: false,
@@ -69,10 +69,10 @@ export function RequestLeaveDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: leaveTypes } = useLeaveTypes();
-  // Reuses Attendance's existing "today" staff list purely as a {staffProfileId, name} lookup for
-  // the admin-on-behalf picker — no new endpoint, no Staff-module change.
+  // Reuses Attendance's existing "today" employee list purely as a {employeeProfileId, name} lookup for
+  // the admin-on-behalf picker — no new endpoint, no Employees-module change.
   const { data: todayAttendance } = useAttendanceList({ scope: "today", date: todayString(), page: 1, pageSize: 100 });
-  const staffOptions = (todayAttendance?.data ?? []).map((row) => row.staff);
+  const employeeOptions = (todayAttendance?.data ?? []).map((row) => row.employee);
 
   const create = useCreateLeaveRequest();
   const presignAttachment = usePresignLeaveAttachment();
@@ -101,7 +101,7 @@ export function RequestLeaveDialog({
     }
   }, [open, reset]);
 
-  const staffProfileId = useWatch({ control, name: "staffProfileId" });
+  const employeeProfileId = useWatch({ control, name: "employeeProfileId" });
   const leaveTypeId = useWatch({ control, name: "leaveTypeId" });
   const startDate = useWatch({ control, name: "startDate" });
   const endDate = useWatch({ control, name: "endDate" });
@@ -111,8 +111,8 @@ export function RequestLeaveDialog({
   const selectedType = (leaveTypes ?? []).find((lt) => lt.id === leaveTypeId);
 
   const myBalances = useMyLeaveBalances();
-  const staffBalances = useLeaveBalances(staffProfileId || undefined);
-  const balances = staffProfileId ? staffBalances.data : myBalances.data;
+  const employeeBalances = useLeaveBalances(employeeProfileId || undefined);
+  const balances = employeeProfileId ? employeeBalances.data : myBalances.data;
   const remaining = balances?.find((b) => b.leaveTypeId === leaveTypeId)?.closingBalance;
 
   // Each shape only makes sense for one case — switching between single-day and a range clears
@@ -190,18 +190,18 @@ export function RequestLeaveDialog({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {allowOnBehalf && (
-          <Field label={t("onBehalfOf")} htmlFor="lr-staff">
+          <Field label={t("onBehalfOf")} htmlFor="lr-employee">
             <Controller
               control={control}
-              name="staffProfileId"
+              name="employeeProfileId"
               render={({ field }) => (
                 <Select
-                  id="lr-staff"
+                  id="lr-employee"
                   value={field.value ?? ""}
                   onChange={(e) => field.onChange(e.target.value || undefined)}
                 >
                   <option value="">{t("myself")}</option>
-                  {staffOptions.map((s) => (
+                  {employeeOptions.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>

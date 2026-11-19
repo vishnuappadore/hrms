@@ -55,9 +55,9 @@ export function RolesContent() {
         ),
       },
       {
-        id: "staffCount",
-        header: t("colStaff"),
-        cell: ({ row }) => <span className="tabular-nums">{row.original.staffCount}</span>,
+        id: "employeeCount",
+        header: t("colEmployees"),
+        cell: ({ row }) => <span className="tabular-nums">{row.original.employeeCount}</span>,
       },
       {
         id: "actions",

@@ -83,7 +83,7 @@ export function LeaveDetailDialog({
     <Dialog
       open={id !== null}
       onClose={onClose}
-      title={data ? t("title", { name: data.staff.name }) : t("titleFallback")}
+      title={data ? t("title", { name: data.employee.name }) : t("titleFallback")}
       className="max-w-2xl"
       showCloseButton
       closeLabel={tc("close")}
@@ -93,10 +93,10 @@ export function LeaveDetailDialog({
       ) : (
         <div className="space-y-5">
           <div className="flex items-center gap-3">
-            <Avatar name={data.staff.name} />
+            <Avatar name={data.employee.name} />
             <div className="min-w-0">
-              <p className="truncate font-medium">{data.staff.name}</p>
-              <p className="truncate text-[10.5px] text-muted-foreground">{data.staff.role ?? "—"}</p>
+              <p className="truncate font-medium">{data.employee.name}</p>
+              <p className="truncate text-[10.5px] text-muted-foreground">{data.employee.role ?? "—"}</p>
             </div>
             <Badge variant={LEAVE_STATUS_BADGE_VARIANT[data.status]}>
               {data.status === "pending_second_approval" ? tStatus("pendingSecondApproval") : tStatus(data.status)}

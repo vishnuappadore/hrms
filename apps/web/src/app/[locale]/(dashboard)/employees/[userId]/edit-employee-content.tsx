@@ -4,14 +4,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { BackLink } from "@/components/back-link";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/lib/queries/users";
-import { StaffForm } from "../staff-form";
+import { useEmployee } from "@/lib/queries/employees";
+import { EmployeeForm } from "../employee-form";
 
-export function EditStaffContent({ userId }: { userId: string }) {
-  const t = useTranslations("staff");
+export function EditEmployeeContent({ userId }: { userId: string }) {
+  const t = useTranslations("employees");
   const tc = useTranslations("common");
   const locale = useLocale();
-  const { data: user, isLoading, isError } = useUser(userId);
+  const { data: user, isLoading, isError } = useEmployee(userId);
 
   if (isLoading) {
     return <div className="mx-auto h-64 max-w-3xl animate-pulse rounded-xl bg-muted" />;
@@ -35,14 +35,14 @@ export function EditStaffContent({ userId }: { userId: string }) {
             {tc(user.status)}
           </Badge>
         </div>
-        <BackLink href="/staff" label={t("backToList")} bare />
+        <BackLink href="/employees" label={t("backToList")} bare />
       </div>
       <p className="mb-6 text-xs text-muted-foreground">
         {t("audit.created", { date: dateFmt.format(new Date(user.createdAt)) })}
         {" · "}
         {t("audit.updated", { date: dateFmt.format(new Date(user.updatedAt)) })}
       </p>
-      <StaffForm user={user} />
+      <EmployeeForm user={user} />
     </div>
   );
 }

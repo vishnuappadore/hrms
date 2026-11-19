@@ -49,7 +49,7 @@ export function RejectLeaveDialog({
   }
 
   return (
-    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.staff.name ?? "" })}>
+    <Dialog open={target !== null} onClose={onClose} title={t("title", { name: target?.employee.name ?? "" })}>
       <div className="space-y-4">
         <Field label={t("reason")} htmlFor="reject-reason" required error={error ?? undefined}>
           <textarea

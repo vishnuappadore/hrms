@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useResetUserPassword } from "@/lib/queries/users";
+import { useResetEmployeePassword } from "@/lib/queries/employees";
 
 export function ResetPasswordDialog({ user, onClose }: { user: User | null; onClose: () => void }) {
-  const t = useTranslations("staff.resetPassword");
+  const t = useTranslations("employees.resetPassword");
   const tc = useTranslations("common");
-  const reset = useResetUserPassword();
+  const reset = useResetEmployeePassword();
   const permissions = usePermissions();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -75,7 +75,7 @@ export function ResetPasswordDialog({ user, onClose }: { user: User | null; onCl
           <Button variant="outline" onClick={close}>
             {tc("cancel")}
           </Button>
-          {permissions.includes("staff.update") && (
+          {permissions.includes("employee.update") && (
             <Button type="submit" disabled={reset.isPending}>
               {reset.isPending ? tc("saving") : t("action")}
             </Button>

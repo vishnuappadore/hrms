@@ -7,8 +7,8 @@ import { Input } from "./input";
 import { Select } from "./select";
 
 /**
- * Dial-code + local-number picker — a UX convenience only (defaults from the tenant's currency;
- * there is no literal tenant/company "country" field anywhere in the schema today). Validation
+ * Dial-code + local-number picker — a UX convenience only (defaults from the company's currency;
+ * there is no literal "country" field anywhere in the schema today). Validation
  * stays the shared, country-agnostic `MobileSchema` (docs/GLOBALIZATION.md) — this component only
  * ever produces/parses the single `+<dialcode><digits>` string that schema expects.
  */
@@ -18,8 +18,8 @@ export interface CountryOption {
 }
 
 export const COUNTRIES: CountryOption[] = [
-  { iso: "om", dialCode: "968" },
   { iso: "ae", dialCode: "971" },
+  { iso: "om", dialCode: "968" },
   { iso: "sa", dialCode: "966" },
   { iso: "qa", dialCode: "974" },
   { iso: "kw", dialCode: "965" },
@@ -29,15 +29,15 @@ export const COUNTRIES: CountryOption[] = [
 ];
 
 export const CURRENCY_TO_COUNTRY: Record<string, string> = {
-  OMR: "om",
   AED: "ae",
+  OMR: "om",
   SAR: "sa",
   QAR: "qa",
   KWD: "kw",
   BHD: "bh",
   USD: "us",
 };
-export const DEFAULT_COUNTRY_ISO = "om";
+export const DEFAULT_COUNTRY_ISO = "ae";
 
 export function findCountryByIso(iso: string): CountryOption {
   return COUNTRIES.find((c) => c.iso === iso) ?? COUNTRIES[0]!;

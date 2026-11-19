@@ -9,7 +9,7 @@ export interface FormSectionProps {
   children: ReactNode;
 }
 
-/** Card + optional heading + field grid — shared by Staff/Branch/Service forms. */
+/** Card + optional heading + field grid — shared by Employee/Branch forms. */
 export function FormSection({ title, className, wide, children }: FormSectionProps) {
   return (
     <section className={cn("rounded-xl border border-border bg-card p-5", className)}>
