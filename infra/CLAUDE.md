@@ -18,7 +18,7 @@ Caddy — via Docker Compose. No ALB, no RDS, no ElastiCache, no NAT Gateway. Ta
 ## The two invariants
 
 1. **Region is always a variable, never hardcoded.** Every module takes `region`/reads it
-   through a passed-in value; `envs/prod/variables.tf`'s `region` (default `me-central-1`) is
+   through a passed-in value; `envs/prod/variables.tf`'s `region` (default `ap-south-1`) is
    the single source of truth. The GitHub Actions workflow's `AWS_REGION` env var must be kept
    in sync with it by hand (workflows can't read Terraform variables directly).
 2. **No inbound SSH, ever.** The security group in `modules/network` has no port 22 rule, full

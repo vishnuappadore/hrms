@@ -1,6 +1,6 @@
 variable "region" {
   type        = string
-  default     = "me-central-1"
+  default     = "ap-south-1"
   description = "AWS region. Never hardcode this anywhere else — every resource/module reads it from here."
 }
 
