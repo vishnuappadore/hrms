@@ -8,8 +8,9 @@ set -uo pipefail
 exec > >(tee -a /var/log/keystonehr-user-data.log) 2>&1
 echo "=== user_data start: $(date -u) ==="
 
-dnf install -y docker jq unzip >/dev/null
+dnf install -y docker jq unzip cronie >/dev/null
 systemctl enable --now docker
+systemctl enable --now crond
 usermod -aG docker ec2-user || true
 
 if ! docker compose version >/dev/null 2>&1; then

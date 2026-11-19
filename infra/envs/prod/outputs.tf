@@ -20,6 +20,6 @@ output "app_bucket_name" {
 }
 
 output "github_deploy_role_arn" {
-  value       = module.github_oidc.deploy_role_arn
-  description = "Paste into the GitHub repo's Actions secrets/variables as AWS_DEPLOY_ROLE_ARN."
+  value       = try(module.github_oidc[0].deploy_role_arn, null)
+  description = "Paste into the GitHub repo's Actions secrets/variables as AWS_DEPLOY_ROLE_ARN. Null when create_github_oidc=false."
 }

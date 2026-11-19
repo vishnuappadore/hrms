@@ -16,7 +16,10 @@ apps/api/prisma/*.db
 infra/**/.terraform/
 infra/**/*.tfstate*
 infra/**/.terraform.lock.hcl
-infra/**/terraform.tfvars
+infra/**/*.tfvars
+infra/**/*.tfbackend
+infra/**/backend-*.hcl
+infra/**/*.tfplan
 !infra/**/terraform.tfvars.example
 
 # OS / editor

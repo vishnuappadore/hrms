@@ -30,3 +30,9 @@ variable "route53_zone_id" {
   default     = ""
   description = "Hosted zone id to create the A record in. Leave empty if domain_name is also empty, or if DNS is managed outside Route 53."
 }
+
+variable "create_github_oidc" {
+  type        = bool
+  default     = true
+  description = "The GitHub OIDC provider for token.actions.githubusercontent.com is a singleton per AWS account — set to false in any secondary/parallel environment in the same account (e.g. a temporary stack in another region) so it doesn't collide with the one the primary environment already created."
+}

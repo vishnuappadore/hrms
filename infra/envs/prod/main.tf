@@ -33,6 +33,7 @@ module "app_server" {
 }
 
 module "github_oidc" {
+  count       = var.create_github_oidc ? 1 : 0
   source      = "../../modules/github-oidc"
   project     = var.project
   environment = var.environment
@@ -42,6 +43,11 @@ module "github_oidc" {
   ecr_web_repository_arn  = module.platform.ecr_web_repository_arn
   app_bucket_arn          = module.platform.app_bucket_arn
   app_server_instance_arn = "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:instance/${module.app_server.instance_id}"
+}
+
+moved {
+  from = module.github_oidc
+  to   = module.github_oidc[0]
 }
 
 module "dns" {
