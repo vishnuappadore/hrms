@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: me-central-1 # keep in sync with infra/envs/prod's `region` variable
+  AWS_REGION: ap-south-1 # keep in sync with infra/envs/prod's `region` variable
 
 jobs:
   deploy:
