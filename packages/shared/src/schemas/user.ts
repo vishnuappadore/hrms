@@ -13,7 +13,7 @@ export const PasswordSchema = z
   .regex(/[A-Za-z]/, "Must contain a letter")
   .regex(/[0-9]/, "Must contain a digit");
 
-/** Shared by CreateUserSchema and staff.ts's CreateStaffSchema. */
+/** Shared by CreateUserSchema and employee.ts's CreateEmployeeSchema. */
 export function assertBranchAssignment(
   v: { allBranches: boolean; branchIds: string[] },
   ctx: z.RefinementCtx,
@@ -73,7 +73,7 @@ export const UserSchema = z.object({
   name: z.string(),
   email: z.string().nullable(),
   username: z.string(),
-  /** From the linked StaffProfile — null for a user with no staff profile. */
+  /** From the linked EmployeeProfile — null for a user with no employee profile. */
   mobile: z.string().nullable(),
   status: z.enum(["active", "inactive"]),
   locale: z.enum(["en", "ar"]),
@@ -95,9 +95,9 @@ export const RoleSchema = z.object({
 });
 export type Role = z.infer<typeof RoleSchema>;
 
-/** `/settings/roles` list — adds how many staff currently hold each role (blocks deletion if > 0). */
+/** `/settings/roles` list — adds how many employees currently hold each role (blocks deletion if > 0). */
 export const RoleSummarySchema = RoleSchema.extend({
-  staffCount: z.number().int(),
+  employeeCount: z.number().int(),
 });
 export type RoleSummary = z.infer<typeof RoleSummarySchema>;
 

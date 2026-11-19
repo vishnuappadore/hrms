@@ -3,10 +3,10 @@ import { CURRENCY_EXPONENTS } from "../money";
 import { WEEKDAYS } from "./branch";
 
 /**
- * Settings > General Settings (docs/MODULES/settings.md section 1) — the
- * tenant-wide regional/display defaults previously shown read-only on
- * Company Info. `defaultLocale`/`timezone`/`defaultCurrency` live on `Tenant`
- * already; `useWesternNumeralsInArabic`/`weekStartsOn` are new columns.
+ * Settings > General Settings — the company-wide regional/display defaults.
+ * `defaultLocale`/`timezone`/`defaultCurrency`/`useWesternNumeralsInArabic`/
+ * `weekStartsOn` all live on the single `CompanySettings` row.
+ * `defaultCurrency` is fixed to AED for this deployment.
  */
 
 export const UpdateGeneralSettingsSchema = z.object({
@@ -27,9 +27,7 @@ export const GeneralSettingsSchema = z.object({
   defaultCurrency: z.string(),
   useWesternNumeralsInArabic: z.boolean(),
   weekStartsOn: z.enum(WEEKDAYS),
-  /** The web form uses this to lock `defaultCurrency` — changing it once any
-   *  branch exists risks the mixed-currency state docs/GLOBALIZATION.md says
-   *  to avoid (branches inherit `defaultCurrency` at creation time). */
+  /** Informational — branches inherit `defaultCurrency` at creation time. */
   branchCount: z.number().int().nonnegative(),
 });
 export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;

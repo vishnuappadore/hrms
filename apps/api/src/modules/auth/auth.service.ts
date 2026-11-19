@@ -7,24 +7,21 @@ import { JwtService } from "@nestjs/jwt";
 import * as argon2 from "argon2";
 import { createHash, randomBytes } from "node:crypto";
 import { ERROR_CODES, type AuthTokens, type AuthUser } from "@keystonehr/shared";
-import { AuthPrismaService } from "../../database/auth-prisma.service";
+import { PrismaService } from "../../database/prisma.service";
 import type { AccessTokenPayload } from "../../common/guards/jwt-auth.guard";
 
-/**
- * Pre-tenant flows (login, refresh, password reset) — the ONLY module allowed
- * to use the RLS-bypassing AuthPrismaService. Every query filters explicitly.
- */
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly db: AuthPrismaService,
+    private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
   ) {}
 
   async login(identifier: string, password: string, deviceInfo?: string) {
-    const user = await this.db.user.findFirst({
+    const db = this.prisma.client;
+    const user = await db.user.findFirst({
       where: {
         deletedAt: null,
         OR: [{ email: identifier.toLowerCase() }, { username: identifier }],
@@ -32,7 +29,6 @@ export class AuthService {
       include: {
         role: { include: { permissions: { select: { permissionKey: true } } } },
         branchAssignments: { select: { branchId: true } },
-        tenant: { select: { status: true, defaultCurrency: true } },
       },
     });
 
@@ -45,29 +41,29 @@ export class AuthService {
         message: "Invalid email/username or password",
       });
     }
-    if (user.status !== "active" || user.tenant.status !== "active") {
+    if (user.status !== "active") {
       throw new UnauthorizedException({
         code: ERROR_CODES.ACCOUNT_INACTIVE,
         message: "Your account is inactive. Please contact administrator",
       });
     }
 
-    await this.db.user.update({
+    await db.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
 
     const tokens = await this.issueTokens(user.id, {
-      tenantId: user.tenantId,
       roleId: user.roleId,
       allBranches: user.allBranches,
       branchIds: user.branchAssignments.map((a) => a.branchId),
       deviceInfo,
     });
 
+    const company = await db.companySettings.findUnique({ where: { id: "default" } });
+
     const authUser: AuthUser = {
       id: user.id,
-      tenantId: user.tenantId,
       name: user.name,
       email: user.email,
       username: user.username,
@@ -78,14 +74,15 @@ export class AuthService {
       allBranches: user.allBranches,
       branchIds: user.branchAssignments.map((a) => a.branchId),
       locale: user.locale === "ar" ? "ar" : "en",
-      currency: user.tenant.defaultCurrency,
+      currency: company?.defaultCurrency ?? "AED",
     };
     return { tokens, user: authUser };
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
+    const db = this.prisma.client;
     const tokenHash = sha256(refreshToken);
-    const stored = await this.db.refreshToken.findUnique({
+    const stored = await db.refreshToken.findUnique({
       where: { tokenHash },
       include: {
         user: { include: { branchAssignments: { select: { branchId: true } } } },
@@ -106,13 +103,12 @@ export class AuthService {
     }
 
     // Rotation: the old token is revoked, a new pair is issued.
-    await this.db.refreshToken.update({
+    await db.refreshToken.update({
       where: { id: stored.id },
       data: { revokedAt: new Date() },
     });
 
     return this.issueTokens(stored.userId, {
-      tenantId: stored.user.tenantId,
       roleId: stored.user.roleId,
       allBranches: stored.user.allBranches,
       branchIds: stored.user.branchAssignments.map((a) => a.branchId),
@@ -121,7 +117,7 @@ export class AuthService {
   }
 
   async logout(refreshToken: string): Promise<void> {
-    await this.db.refreshToken.updateMany({
+    await this.prisma.client.refreshToken.updateMany({
       where: { tokenHash: sha256(refreshToken), revokedAt: null },
       data: { revokedAt: new Date() },
     });
@@ -129,18 +125,18 @@ export class AuthService {
 
   /**
    * Always responds success (no user enumeration). Token is logged in dev;
-   * a mailer adapter sends it once notifications land (docs/MODULES/notifications.md).
+   * a mailer adapter sends it once notifications land.
    */
   async forgotPassword(email: string): Promise<void> {
-    const user = await this.db.user.findFirst({
+    const db = this.prisma.client;
+    const user = await db.user.findFirst({
       where: { email: email.toLowerCase(), deletedAt: null, status: "active" },
     });
     if (!user) return;
 
     const raw = randomBytes(32).toString("base64url");
-    await this.db.passwordResetToken.create({
+    await db.passwordResetToken.create({
       data: {
-        tenantId: user.tenantId,
         userId: user.id,
         tokenHash: sha256(raw),
         expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
@@ -150,7 +146,8 @@ export class AuthService {
   }
 
   async resetPassword(token: string, password: string): Promise<void> {
-    const stored = await this.db.passwordResetToken.findUnique({
+    const db = this.prisma.client;
+    const stored = await db.passwordResetToken.findUnique({
       where: { tokenHash: sha256(token) },
     });
     if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
@@ -160,17 +157,17 @@ export class AuthService {
       });
     }
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    await this.db.$transaction([
-      this.db.passwordResetToken.update({
+    await db.$transaction([
+      db.passwordResetToken.update({
         where: { id: stored.id },
         data: { usedAt: new Date() },
       }),
-      this.db.user.update({
+      db.user.update({
         where: { id: stored.userId },
         data: { passwordHash },
       }),
       // password change revokes all sessions
-      this.db.refreshToken.updateMany({
+      db.refreshToken.updateMany({
         where: { userId: stored.userId, revokedAt: null },
         data: { revokedAt: new Date() },
       }),
@@ -180,7 +177,6 @@ export class AuthService {
   private async issueTokens(
     userId: string,
     ctx: {
-      tenantId: string;
       roleId: string;
       allBranches: boolean;
       branchIds: string[];
@@ -189,7 +185,6 @@ export class AuthService {
   ): Promise<AuthTokens> {
     const payload: AccessTokenPayload = {
       sub: userId,
-      tenantId: ctx.tenantId,
       roleId: ctx.roleId,
       allBranches: ctx.allBranches,
       branchIds: ctx.branchIds,
@@ -202,9 +197,8 @@ export class AuthService {
 
     const refreshToken = randomBytes(48).toString("base64url");
     const refreshTtl = Number(process.env.JWT_REFRESH_TTL ?? 2_592_000);
-    await this.db.refreshToken.create({
+    await this.prisma.client.refreshToken.create({
       data: {
-        tenantId: ctx.tenantId,
         userId,
         tokenHash: sha256(refreshToken),
         deviceInfo: ctx.deviceInfo,

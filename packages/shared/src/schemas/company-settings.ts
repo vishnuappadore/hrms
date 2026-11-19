@@ -1,10 +1,8 @@
 import { z } from "zod";
 
 /**
- * Settings > Company Info (docs/MODULES/settings.md section 2) — the tenant
- * profile shown on invoices and printed documents. Field names
- * (`taxNumber`, `commercialRegistrationNo`) match `NewFranchiseOwnerSchema`
- * (./branch.ts) for the same concepts, rather than inventing new ones.
+ * Settings > Company Info — the company profile shown on payslips and
+ * printed documents. Backed by the single `CompanySettings` row.
  */
 
 export const UpdateCompanySettingsSchema = z.object({

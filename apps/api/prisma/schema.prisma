@@ -1,24 +1,17 @@
-// Foundation schema — identity, org, audit. The full ~40-table domain model is
-// documented in docs/DATA-MODEL.md and lands module by module (see docs/ROADMAP.md).
+// Foundation schema — identity, org, audit, HR domain (Employees, Branches,
+// Attendance, Leave, Payroll, Roles & Permissions). Single-tenant: there is
+// exactly one company, represented by the CompanySettings singleton row.
 //
-// Conventions (docs/DATA-MODEL.md):
-// - Every tenant-scoped table has tenantId + RLS (policies live in the migration SQL).
-// - Money is BIGINT baisa (1 OMR = 1000 baisa). Percentages are Decimal(5,2).
-// - Composite indexes lead with tenantId.
+// Conventions:
+// - Money is BIGINT minor units (see packages/shared/src/money.ts). Percentages are Decimal(5,2).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL") // runtime: hayryou_app (non-owner, RLS applies)
-  directUrl = env("DIRECT_DATABASE_URL") // migrations: hayryou_migrator (owner)
-}
-
-enum TenantStatus {
-  active
-  suspended
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
@@ -26,28 +19,23 @@ enum UserStatus {
   inactive
 }
 
-enum BranchType {
-  corporate
-  franchise
-}
-
 enum BranchStatus {
   active
   inactive
 }
 
-model Tenant {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+/// Single-row company profile. Backs both the Company Info and General
+/// Settings screens — there is exactly one tenant, so there is exactly one
+/// row, with a fixed, well-known id so callers never need to look it up.
+model CompanySettings {
+  id              String @id @default("default")
   name            String
-  slug            String       @unique
-  status          TenantStatus @default(active)
-  plan            String       @default("standard")
-  defaultLocale   String       @default("en") @map("default_locale")
-  /// ISO 4217 — new branches inherit this; per-branch override allowed
-  defaultCurrency String       @default("OMR") @map("default_currency")
-  timezone        String       @default("Asia/Muscat")
+  defaultLocale   String @default("en") @map("default_locale")
+  /// ISO 4217 — fixed at AED for this deployment; branches may still override.
+  defaultCurrency String @default("AED") @map("default_currency")
+  timezone        String @default("Asia/Dubai")
 
-  /// Company Info (Settings > Company Info) — tenant profile shown on invoices/printed documents.
+  /// Company Info (Settings > Company Info) — shown on payslips/printed documents.
   contactPhone             String? @map("contact_phone")
   contactEmail             String? @map("contact_email")
   address                  String? @map("address")
@@ -55,26 +43,20 @@ model Tenant {
   commercialRegistrationNo String? @map("commercial_registration_no")
   logoKey                  String? @map("logo_key")
 
-  /// Settings > General Settings. Keep Western digits by default (matches
-  /// money.ts's prior hardcoded behavior) — a tenant can opt out.
+  /// Settings > General Settings.
   useWesternNumeralsInArabic Boolean @default(true) @map("use_western_numerals_in_arabic")
-  /// One of packages/shared/src/schemas/branch.ts's WEEKDAYS values. Drives
-  /// the Appointments calendar grid's first column (was hardcoded Sunday).
-  weekStartsOn               String  @default("sunday") @map("week_starts_on")
+  /// One of packages/shared's WEEKDAYS values. Drives calendar-style screens'
+  /// first column. UAE's standard work week runs Monday–Friday.
+  weekStartsOn               String  @default("monday") @map("week_starts_on")
 
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  users    User[]
-  roles    Role[]
-  branches Branch[]
-
-  @@map("tenants")
+  @@map("company_settings")
 }
 
 model User {
   id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String     @map("tenant_id") @db.Uuid
   name         String
   email        String?
   username     String
@@ -89,65 +71,54 @@ model User {
   updatedAt    DateTime   @updatedAt @map("updated_at")
   deletedAt    DateTime?  @map("deleted_at")
 
-  tenant               Tenant                 @relation(fields: [tenantId], references: [id])
-  role                 Role                   @relation(fields: [roleId], references: [id])
-  branchAssignments    UserBranchAssignment[]
-  refreshTokens        RefreshToken[]
-  managedBranches      Branch[]               @relation("BranchManager")
-  barberAppointments   Appointment[]          @relation("AppointmentBarber")
-  walkInBarberEntries  WalkInQueueEntry[]     @relation("WalkInBarber")
-  staffProfile         StaffProfile?          @relation("StaffProfileUser")
-  managedStaffProfiles StaffProfile[]         @relation("StaffProfileReportingManager")
-  payrollItems         PayrollItem[]
+  role                    Role                   @relation(fields: [roleId], references: [id])
+  branchAssignments       UserBranchAssignment[]
+  refreshTokens           RefreshToken[]
+  managedBranches         Branch[]               @relation("BranchManager")
+  employeeProfile         EmployeeProfile?       @relation("EmployeeProfileUser")
+  managedEmployeeProfiles EmployeeProfile[]      @relation("EmployeeProfileReportingManager")
+  payrollItems            PayrollItem[]
 
-  @@unique([tenantId, email])
-  @@unique([tenantId, username])
-  @@index([tenantId, status])
+  @@unique([email])
+  @@unique([username])
+  @@index([status])
   @@map("users")
 }
 
 model Role {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  nameEn    String   @map("name_en")
-  nameAr    String   @map("name_ar")
-  /// Seeded vs. tenant-created — informational/badge only, does NOT gate edit/delete (see isSuperAdmin)
-  isSystem  Boolean  @default(false) @map("is_system")
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nameEn String @map("name_en")
+  nameAr String @map("name_ar")
+  /// Seeded vs. admin-created — informational/badge only, does NOT gate edit/delete (see isSuperAdmin)
+  isSystem Boolean @default(false) @map("is_system")
   /// The one seeded role that can never be renamed, have its permissions edited, or be deleted.
-  /// Every other role — including the other 6 seeded system roles — is fully editable/deletable
-  /// (subject to not being currently assigned to any staff member).
-  isSuperAdmin Boolean @default(false) @map("is_super_admin")
-  /// Holders of this role are bookable barbers in Appointments. Identifies the role by flag, not
-  /// by its (renameable) display name.
-  isBarber     Boolean @default(false) @map("is_barber")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  /// Every other role — including the other seeded system roles — is fully editable/deletable
+  /// (subject to not being currently assigned to any employee).
+  isSuperAdmin Boolean  @default(false) @map("is_super_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  tenant      Tenant           @relation(fields: [tenantId], references: [id])
   permissions RolePermission[]
   users       User[]
 
-  @@unique([tenantId, nameEn])
+  @@unique([nameEn])
   @@map("roles")
 }
 
 model RolePermission {
   id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String @map("tenant_id") @db.Uuid
   roleId        String @map("role_id") @db.Uuid
-  /// Must be a key from @hayryou/shared PERMISSIONS — code is the catalog
+  /// Must be a key from @keystonehr/shared PERMISSIONS — code is the catalog
   permissionKey String @map("permission_key")
 
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionKey])
-  @@index([tenantId])
   @@map("role_permissions")
 }
 
 model UserBranchAssignment {
   id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @map("tenant_id") @db.Uuid
   userId   String @map("user_id") @db.Uuid
   branchId String @map("branch_id") @db.Uuid
 
@@ -155,13 +126,11 @@ model UserBranchAssignment {
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId])
-  @@index([tenantId])
   @@map("user_branch_assignments")
 }
 
 model RefreshToken {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId   String    @map("tenant_id") @db.Uuid
   userId     String    @map("user_id") @db.Uuid
   /// sha256 of the token — raw tokens are never stored
   tokenHash  String    @unique @map("token_hash")
@@ -173,13 +142,11 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([tenantId])
   @@map("refresh_tokens")
 }
 
 model PasswordResetToken {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String    @map("tenant_id") @db.Uuid
   userId    String    @map("user_id") @db.Uuid
   tokenHash String    @unique @map("token_hash")
   expiresAt DateTime  @map("expires_at")
@@ -187,19 +154,16 @@ model PasswordResetToken {
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([userId])
-  @@index([tenantId])
   @@map("password_reset_tokens")
 }
 
 model Branch {
-  id       String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String       @map("tenant_id") @db.Uuid
-  /// Human-readable immutable Store ID, e.g. BR-0001 (unique per tenant)
-  code     String       @map("code")
-  nameEn   String       @map("name_en")
-  nameAr   String       @map("name_ar")
-  type     BranchType
-  status   BranchStatus @default(active)
+  id     String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Human-readable immutable Store ID, e.g. BR-0001
+  code   String       @unique
+  nameEn String       @map("name_en")
+  nameAr String       @map("name_ar")
+  status BranchStatus @default(active)
 
   managerUserId String? @map("manager_user_id") @db.Uuid
 
@@ -217,131 +181,27 @@ model Branch {
   /// { openingTime, closingTime, weeklyOffDays: string[] } — see packages/shared/src/schemas/branch.ts
   workingHours Json @map("working_hours")
 
-  /// ISO 4217; defaults to the tenant's default_currency at creation
-  currency     String
-  /// Which tax scheme applies at this branch; null = no tax charged.
-  /// Invoices snapshot the computed breakdown at sale time (tax_breakdown),
-  /// so editing a profile never rewrites history.
-  taxProfileId String? @map("tax_profile_id") @db.Uuid
-
-  /// Physical capacity: number of styling chairs available at this branch.
-  chairCount Int @default(1) @map("chair_count")
-
-  allowOnlineBooking Boolean @default(true) @map("allow_online_booking")
-  allowWalkIns       Boolean @default(true) @map("allow_walk_ins")
-  enableLoyalty      Boolean @default(true) @map("enable_loyalty")
-  enableProductSales Boolean @default(true) @map("enable_product_sales")
+  /// ISO 4217; defaults to the company's default currency (AED) at creation
+  currency String
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   createdBy String?  @map("created_by") @db.Uuid
   updatedBy String?  @map("updated_by") @db.Uuid
 
-  tenant           Tenant                 @relation(fields: [tenantId], references: [id])
   manager          User?                  @relation("BranchManager", fields: [managerUserId], references: [id])
-  taxProfile       TaxProfile?            @relation(fields: [taxProfileId], references: [id])
-  franchiseDetails FranchiseDetails?
   userAssignments  UserBranchAssignment[]
-  branchServices   BranchService[]
-  appointments     Appointment[]
-  walkInQueueEntries WalkInQueueEntry[]
-  staffProfiles    StaffProfile[]         @relation("StaffProfilePrimaryBranch")
+  employeeProfiles EmployeeProfile[]      @relation("EmployeeProfilePrimaryBranch")
   payrollRuns      PayrollRun[]
   payrollBatches   PayrollActionBatch[]
   leaveRequests    LeaveRequest[]
 
-  @@unique([tenantId, code])
-  @@index([tenantId, status])
-  @@index([tenantId, type])
+  @@index([status])
   @@map("branches")
-}
-
-/// A named tax scheme (e.g. "Oman VAT", "India GST 18% intra-state").
-/// Consumed by POS calculation, invoicing, bill display and reports —
-/// configured per tenant in Settings, never hard-coded.
-model TaxProfile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  name      String
-  /// ISO 3166-1 alpha-2 hint for per-country selection rules (e.g. place of supply)
-  country   String?
-  /// New branches without an explicit profile inherit the tenant default
-  isDefault Boolean  @default(false) @map("is_default")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  components TaxComponent[]
-  branches   Branch[]
-
-  @@unique([tenantId, name])
-  @@index([tenantId])
-  @@map("tax_profiles")
-}
-
-/// One line of a tax scheme: VAT 5 · CGST 9 · SGST 9 · IGST 18 · PST 7.
-/// Components apply in parallel to the same taxable base, each rounded
-/// independently (see packages/shared money.ts computeTaxBreakdown).
-model TaxComponent {
-  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String  @map("tenant_id") @db.Uuid
-  profileId   String  @map("profile_id") @db.Uuid
-  name        String
-  ratePercent Decimal @map("rate_percent") @db.Decimal(5, 2)
-  sortOrder   Int     @default(0) @map("sort_order")
-
-  profile TaxProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@unique([profileId, name])
-  @@index([tenantId])
-  @@map("tax_components")
-}
-
-/// A franchise partner — first-class entity so one owner can hold MANY
-/// branches (query/report/update in one place). Optional link to their
-/// login account for portal access.
-model FranchiseOwner {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @map("tenant_id") @db.Uuid
-
-  ownerName                String  @map("owner_name")
-  companyName              String  @map("company_name")
-  commercialRegistrationNo String  @map("commercial_registration_no")
-  taxNumber                String? @map("tax_number")
-  email                    String?
-  mobile                   String?
-  userId                   String? @map("user_id") @db.Uuid
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  franchiseDetails FranchiseDetails[]
-
-  @@unique([tenantId, commercialRegistrationNo])
-  @@index([tenantId])
-  @@map("franchise_owners")
-}
-
-/// Per-branch franchise link: the agreement is per location; the owner is shared.
-model FranchiseDetails {
-  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String @map("tenant_id") @db.Uuid
-  branchId         String @unique @map("branch_id") @db.Uuid
-  franchiseOwnerId String @map("franchise_owner_id") @db.Uuid
-
-  agreementStartDate  DateTime @map("agreement_start_date") @db.Date
-  agreementExpiryDate DateTime @map("agreement_expiry_date") @db.Date
-
-  branch Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  owner  FranchiseOwner @relation(fields: [franchiseOwnerId], references: [id])
-
-  @@index([tenantId])
-  @@index([franchiseOwnerId])
-  @@map("franchise_details")
 }
 
 model AuditLog {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId   String   @map("tenant_id") @db.Uuid
   userId     String?  @map("user_id") @db.Uuid
   action     String
   entityType String   @map("entity_type")
@@ -351,294 +211,9 @@ model AuditLog {
   ip         String?
   createdAt  DateTime @default(now()) @map("created_at")
 
-  @@index([tenantId, entityType, entityId])
-  @@index([tenantId, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
   @@map("audit_logs")
-}
-
-enum ServiceStatus {
-  active
-  inactive
-}
-
-model ServiceCategory {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  nameEn    String   @map("name_en")
-  nameAr    String   @map("name_ar")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  services Service[]
-
-  @@unique([tenantId, nameEn])
-  @@index([tenantId, sortOrder])
-  @@map("service_categories")
-}
-
-model Service {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String        @map("tenant_id") @db.Uuid
-  categoryId      String        @map("category_id") @db.Uuid
-  nameEn          String        @map("name_en")
-  nameAr          String        @map("name_ar")
-  /// calendar time in minutes
-  durationMinutes Int           @map("duration_minutes")
-  /// cleanup/turnaround minutes appended after the service
-  bufferMinutes   Int           @default(0) @map("buffer_minutes")
-  /// integer minor units in the tenant currency (packages/shared money.ts)
-  priceMinor      BigInt        @map("price_minor")
-  status          ServiceStatus @default(active)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  createdBy       String?       @map("created_by") @db.Uuid
-  updatedBy       String?       @map("updated_by") @db.Uuid
-  deletedAt       DateTime?     @map("deleted_at")
-
-  category            ServiceCategory      @relation(fields: [categoryId], references: [id])
-  branchOverrides     BranchService[]
-  appointmentServices AppointmentService[]
-  walkInQueueServices WalkInQueueService[]
-
-  // Service name uniqueness within a salon (2026 req business rule). Full index is
-  // safe today because no delete flow sets deleted_at; if soft-delete + recreate is
-  // ever exposed, switch to a partial UNIQUE ... WHERE deleted_at IS NULL.
-  @@unique([tenantId, nameEn])
-  @@index([tenantId, status])
-  @@index([tenantId, categoryId])
-  @@map("services")
-}
-
-/// Exception rows only: no row = offered at base price. A row can override
-/// the price and/or switch the service off at that branch.
-model BranchService {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String   @map("tenant_id") @db.Uuid
-  serviceId          String   @map("service_id") @db.Uuid
-  branchId           String   @map("branch_id") @db.Uuid
-  priceOverrideMinor BigInt?  @map("price_override_minor")
-  isAvailable        Boolean  @default(true) @map("is_available")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-
-  @@unique([serviceId, branchId])
-  @@index([tenantId, branchId])
-  @@map("branch_services")
-}
-
-enum CustomerTier {
-  new
-  bronze
-  silver
-  gold
-  platinum
-}
-
-/// Master customer identity record (created here or by Appointments / Walk-in
-/// Queue / POS). Mobile is the per-tenant unique key. visits / points /
-/// total_spend_minor are system-maintained counters incremented by POS /
-/// Appointments / Loyalty — never written from the Customers API.
-model Customer {
-  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String       @map("tenant_id") @db.Uuid
-  mobile          String
-  name            String
-  email           String?
-  tier            CustomerTier @default(new)
-  visits          Int          @default(0)
-  points          Int          @default(0)
-  /// integer minor units of the tenant default currency (packages/shared money.ts)
-  totalSpendMinor BigInt       @default(0) @map("total_spend_minor")
-  /// S3/MinIO object key for the profile photo — bare column, no bytes/URL stored (mirrors
-  /// tenants.logo_key); a presigned GET URL is minted fresh on every read.
-  photoKey        String?      @map("photo_key")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
-  createdBy       String?      @map("created_by") @db.Uuid
-  updatedBy       String?      @map("updated_by") @db.Uuid
-
-  appointments       Appointment[]
-  invoices           Invoice[]
-  walkInQueueEntries WalkInQueueEntry[]
-
-  @@unique([tenantId, mobile])
-  @@unique([tenantId, email])
-  @@index([tenantId, tier])
-  @@map("customers")
-}
-
-/// 2026 five-status model (docs/MODULES/appointments.md). `waiting` is the
-/// initial pre-service state; `completed` hands off to POS/Checkout.
-enum AppointmentStatus {
-  waiting
-  confirmed
-  in_progress
-  completed
-  cancelled
-}
-
-/// A booked appointment for one branch + one barber. Customer is OPTIONAL
-/// (2026 spec) — a walk-in booking may carry no customer identity. The total
-/// is recomputed server-side from the service lines; cancellation is a status,
-/// not a delete (rows are retained for history).
-model Appointment {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String            @map("tenant_id") @db.Uuid
-  branchId        String            @map("branch_id") @db.Uuid
-  /// unique display reference per tenant, e.g. APT-2026-001245
-  appointmentNo   String            @map("appointment_no")
-  customerId      String?           @map("customer_id") @db.Uuid
-  /// denormalized display name for a name-only booking (no mobile given, so no Customer
-  /// record exists to hold it) — null whenever customerId is set. Same pattern as
-  /// walkin_queue_entries.customer_name.
-  customerName    String?           @map("customer_name")
-  barberId        String            @map("barber_id") @db.Uuid
-  status          AppointmentStatus @default(waiting)
-  scheduledStart  DateTime          @map("scheduled_start")
-  scheduledEnd    DateTime          @map("scheduled_end")
-  /// sum of the service lines' duration + buffer, snapshot at booking
-  durationMinutes Int               @map("duration_minutes")
-  /// integer minor units of `currency` (packages/shared money.ts)
-  totalMinor      BigInt            @map("total_minor")
-  /// ISO 4217; snapshot of the branch currency at booking
-  currency        String
-  notes           String?
-  /// set by POS checkout on successful payment — bare column, no Prisma
-  /// relation/FK, same pattern as walkin_queue_entries.invoice_id
-  invoiceId       String?           @map("invoice_id") @db.Uuid
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  createdBy       String?           @map("created_by") @db.Uuid
-  updatedBy       String?           @map("updated_by") @db.Uuid
-
-  branch   Branch                     @relation(fields: [branchId], references: [id])
-  customer Customer?                  @relation(fields: [customerId], references: [id])
-  barber   User                       @relation("AppointmentBarber", fields: [barberId], references: [id])
-  services AppointmentService[]
-  history  AppointmentStatusHistory[]
-
-  @@unique([tenantId, appointmentNo])
-  @@index([tenantId, branchId, scheduledStart])
-  @@index([tenantId, barberId, scheduledStart])
-  @@index([tenantId, status])
-  @@index([tenantId, customerId])
-  @@map("appointments")
-}
-
-/// One booked service on an appointment. Name + price + duration are
-/// snapshot at booking so later catalogue edits never rewrite history.
-model AppointmentService {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  appointmentId   String   @map("appointment_id") @db.Uuid
-  serviceId       String   @map("service_id") @db.Uuid
-  nameEn          String   @map("name_en")
-  nameAr          String   @map("name_ar")
-  /// per-branch price at booking time, integer minor units
-  priceMinor      BigInt   @map("price_minor")
-  durationMinutes Int      @map("duration_minutes")
-  bufferMinutes   Int      @default(0) @map("buffer_minutes")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  service     Service     @relation(fields: [serviceId], references: [id])
-
-  @@index([tenantId, appointmentId])
-  @@map("appointment_services")
-}
-
-/// Audit trail of status changes, surfaced in the Appointment Details modal.
-model AppointmentStatusHistory {
-  id            String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String             @map("tenant_id") @db.Uuid
-  appointmentId String             @map("appointment_id") @db.Uuid
-  fromStatus    AppointmentStatus? @map("from_status")
-  toStatus      AppointmentStatus  @map("to_status")
-  changedBy     String?            @map("changed_by") @db.Uuid
-  createdAt     DateTime           @default(now()) @map("created_at")
-
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, appointmentId])
-  @@map("appointment_status_history")
-}
-
-/// Walk-in Queue lifecycle (docs/MODULES/pos.md Part B). `completed` is
-/// reached either directly (Complete action) or via a successful POS checkout
-/// (entry point 3), which also sets `invoiceId`. Cancel is only reachable
-/// from `waiting`.
-enum WalkInStatus {
-  waiting
-  serving
-  completed
-  cancelled
-}
-
-/// A walk-in customer's place in the branch's service queue, from
-/// registration until POS checkout. Customer identity is OPTIONAL — an
-/// anonymous walk-in has `customer_id` null and `customer_name`/`mobile_number`
-/// as the only record of who they are (see resolveCustomer-style linking in
-/// WalkInsService.create).
-model WalkInQueueEntry {
-  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String       @map("tenant_id") @db.Uuid
-  branchId           String       @map("branch_id") @db.Uuid
-  customerId         String?      @map("customer_id") @db.Uuid
-  /// denormalized display name; null renders as "Walk-in Guest" client-side
-  customerName       String?      @map("customer_name")
-  mobileNumber       String?      @map("mobile_number")
-  barberStaffId      String?      @map("barber_staff_id") @db.Uuid
-  status             WalkInStatus @default(waiting)
-  queuedAt           DateTime     @default(now()) @map("queued_at")
-  servingStartedAt   DateTime?    @map("serving_started_at")
-  completedAt        DateTime?    @map("completed_at")
-  /// integer minor units of `currency` (packages/shared money.ts), snapshot at registration
-  totalMinor         BigInt       @map("total_minor")
-  /// ISO 4217; snapshot of the branch currency at registration
-  currency           String
-  /// set by POS checkout (entry point 3) on successful payment — bare column,
-  /// no Prisma relation/FK, same pattern as invoices.appointment_id
-  invoiceId          String?      @map("invoice_id") @db.Uuid
-  createdAt          DateTime     @default(now()) @map("created_at")
-  updatedAt          DateTime     @updatedAt @map("updated_at")
-  createdBy          String?      @map("created_by") @db.Uuid
-  updatedBy          String?      @map("updated_by") @db.Uuid
-
-  branch   Branch               @relation(fields: [branchId], references: [id])
-  customer Customer?            @relation(fields: [customerId], references: [id])
-  barber   User?                @relation("WalkInBarber", fields: [barberStaffId], references: [id])
-  services WalkInQueueService[]
-
-  @@index([tenantId, branchId, status])
-  @@index([tenantId, barberStaffId])
-  @@index([tenantId, customerId])
-  @@map("walkin_queue_entries")
-}
-
-/// One requested service on a walk-in queue entry. Name + price snapshot at
-/// registration so later catalogue edits never rewrite history (same
-/// discipline as AppointmentService).
-model WalkInQueueService {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String   @map("tenant_id") @db.Uuid
-  queueEntryId   String   @map("queue_entry_id") @db.Uuid
-  serviceId      String   @map("service_id") @db.Uuid
-  nameEn         String   @map("name_en")
-  nameAr         String   @map("name_ar")
-  unitPriceMinor BigInt   @map("unit_price_minor")
-  durationMinutes Int     @map("duration_minutes")
-  qty            Int      @default(1)
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  queueEntry WalkInQueueEntry @relation(fields: [queueEntryId], references: [id], onDelete: Cascade)
-  service    Service          @relation(fields: [serviceId], references: [id])
-
-  @@index([tenantId, queueEntryId])
-  @@map("walkin_queue_services")
 }
 
 enum Gender {
@@ -646,9 +221,9 @@ enum Gender {
   female
 }
 
-/// Availability status shown/edited on Staff. Distinct from the login-only
-/// UserStatus (active|inactive) above — see docs/MODULES/staff.md.
-enum StaffAvailabilityStatus {
+/// Availability status shown/edited on Employees. Distinct from the
+/// login-only UserStatus (active|inactive) above.
+enum EmployeeAvailabilityStatus {
   active
   on_leave
   inactive
@@ -671,16 +246,15 @@ enum PayrollComponentBasis {
 }
 
 /// Settings > Payroll Components catalog. No hard delete — "Remove" sets
-/// isActive: false so existing staff_payroll_components rows keep a valid
-/// reference; inactive rows just disappear from Add Staff dropdowns.
+/// isActive: false so existing employee_payroll_components rows keep a valid
+/// reference; inactive rows just disappear from Add Employee dropdowns.
 model PayrollComponent {
   id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String                   @map("tenant_id") @db.Uuid
   category           PayrollComponentCategory
   nameEn             String                   @map("name_en")
   nameAr             String                   @map("name_ar")
   basis              PayrollComponentBasis
-  /// integer minor units in the tenant currency; set iff basis = fixed_amount
+  /// integer minor units in AED; set iff basis = fixed_amount
   defaultAmountMinor BigInt?                  @map("default_amount_minor")
   /// percent of base salary; set iff basis = percentage_of_base
   defaultRatePct     Decimal?                 @map("default_rate_pct") @db.Decimal(5, 2)
@@ -689,76 +263,69 @@ model PayrollComponent {
   createdAt          DateTime                 @default(now()) @map("created_at")
   updatedAt          DateTime                 @updatedAt @map("updated_at")
 
-  staffAssignments StaffPayrollComponent[]
+  employeeAssignments EmployeePayrollComponent[]
 
-  @@unique([tenantId, nameEn])
-  @@index([tenantId, category, isActive])
+  @@unique([nameEn])
+  @@index([category, isActive])
   @@map("payroll_components")
 }
 
-/// 1:1 employment/salary profile for a staff User. Kept separate from User
-/// (login/access) per docs/MODULES/staff.md's split between account access
-/// and HR/employment data.
-model StaffProfile {
-  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String                  @map("tenant_id") @db.Uuid
-  userId             String                  @unique @map("user_id") @db.Uuid
-  mobile             String?
-  gender             Gender?
-  staffStatus        StaffAvailabilityStatus @default(active) @map("staff_status")
-  primaryBranchId    String?                 @map("primary_branch_id") @db.Uuid
-  employmentType     EmploymentType?         @map("employment_type")
-  joiningDate        DateTime?               @map("joining_date") @db.Date
-  reportingManagerId String?                 @map("reporting_manager_id") @db.Uuid
-  /// integer minor units of the tenant currency (packages/shared money.ts)
-  baseSalaryMinor    BigInt                  @default(0) @map("base_salary_minor")
-  commissionEnabled  Boolean                 @default(false) @map("commission_enabled")
-  commissionRatePct  Decimal?                @map("commission_rate_pct") @db.Decimal(5, 2)
-  createdAt          DateTime                @default(now()) @map("created_at")
-  updatedAt          DateTime                @updatedAt @map("updated_at")
+/// 1:1 employment/salary profile for an employee User. Kept separate from
+/// User (login/access) — the account-vs-HR-data split.
+model EmployeeProfile {
+  id                  String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String                      @unique @map("user_id") @db.Uuid
+  mobile              String?
+  gender              Gender?
+  employeeStatus      EmployeeAvailabilityStatus  @default(active) @map("employee_status")
+  primaryBranchId     String?                      @map("primary_branch_id") @db.Uuid
+  employmentType      EmploymentType?              @map("employment_type")
+  joiningDate         DateTime?                    @map("joining_date") @db.Date
+  reportingManagerId  String?                      @map("reporting_manager_id") @db.Uuid
+  /// integer minor units of AED (packages/shared/src/money.ts)
+  baseSalaryMinor     BigInt                       @default(0) @map("base_salary_minor")
+  commissionEnabled   Boolean                      @default(false) @map("commission_enabled")
+  commissionRatePct   Decimal?                     @map("commission_rate_pct") @db.Decimal(5, 2)
+  createdAt           DateTime                     @default(now()) @map("created_at")
+  updatedAt           DateTime                     @updatedAt @map("updated_at")
 
-  user              User                    @relation("StaffProfileUser", fields: [userId], references: [id], onDelete: Cascade)
-  primaryBranch     Branch?                 @relation("StaffProfilePrimaryBranch", fields: [primaryBranchId], references: [id])
-  reportingManager  User?                   @relation("StaffProfileReportingManager", fields: [reportingManagerId], references: [id])
-  payrollComponents StaffPayrollComponent[]
+  user              User                       @relation("EmployeeProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  primaryBranch     Branch?                    @relation("EmployeeProfilePrimaryBranch", fields: [primaryBranchId], references: [id])
+  reportingManager  User?                      @relation("EmployeeProfileReportingManager", fields: [reportingManagerId], references: [id])
+  payrollComponents EmployeePayrollComponent[]
   payrollItems      PayrollItem[]
   attendanceDays    AttendanceDay[]
   leaveBalances     LeaveBalance[]
   leaveRequests     LeaveRequest[]
 
-  @@index([tenantId])
-  @@map("staff_profiles")
+  @@map("employee_profiles")
 }
 
-/// A staff member's selected allowance or deduction row. Always stores a
+/// An employee's selected allowance or deduction row. Always stores a
 /// concrete minor-unit amount regardless of the linked component's basis —
 /// percentage-basis components are resolved to an amount at selection time
 /// and snapshotted here (never re-derived if base salary later changes).
-model StaffPayrollComponent {
+model EmployeePayrollComponent {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String   @map("tenant_id") @db.Uuid
-  staffProfileId     String   @map("staff_profile_id") @db.Uuid
+  employeeProfileId  String   @map("employee_profile_id") @db.Uuid
   payrollComponentId String   @map("payroll_component_id") @db.Uuid
   amountMinor        BigInt   @map("amount_minor")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
-  staffProfile     StaffProfile     @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  employeeProfile  EmployeeProfile  @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
   payrollComponent PayrollComponent @relation(fields: [payrollComponentId], references: [id])
 
-  @@unique([staffProfileId, payrollComponentId])
-  @@index([tenantId])
-  @@map("staff_payroll_components")
+  @@unique([employeeProfileId, payrollComponentId])
+  @@map("employee_payroll_components")
 }
 
-/// One payroll run per branch + month (idempotent — see PayrollsService.generate).
-/// v1 scope note (docs/MODULES/payroll.md): Commission is still deliberately NOT
-/// modeled here — commission_records (POS) doesn't exist yet, revisit once it ships.
-/// Absence Deduction and unpaid-leave proration (via Attendance/Leave) have landed —
-/// see PayrollItem.absenceDeductionMinor and paidDays.
+/// One payroll run per branch + month (idempotent — see PayrollService.generate).
+/// Commission is deliberately NOT modeled here. Absence Deduction and
+/// unpaid-leave proration (via Attendance/Leave) are modeled — see
+/// PayrollItem.absenceDeductionMinor and paidDays.
 model PayrollRun {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String   @map("tenant_id") @db.Uuid
   branchId     String   @map("branch_id") @db.Uuid
   /// First day of the payroll month, e.g. 2026-08-01
   payrollMonth DateTime @map("payroll_month") @db.Date
@@ -771,8 +338,7 @@ model PayrollRun {
   items   PayrollItem[]
   batches PayrollActionBatch[]
 
-  @@unique([tenantId, branchId, payrollMonth])
-  @@index([tenantId])
+  @@unique([branchId, payrollMonth])
   @@map("payroll_runs")
 }
 
@@ -783,20 +349,18 @@ enum PayrollItemStatus {
   paid
 }
 
-/// One row per staff member per run. baseSalaryMinor is a locked snapshot;
+/// One row per employee per run. baseSalaryMinor is a locked snapshot;
 /// the two *TotalMinor fields start equal to their PayrollItemComponent
-/// snapshot sum but are independently editable pre-approval (the resolved
-/// "allowances/deductions overridable at run time" decision in
-/// docs/MODULES/payroll.md). otherDeductionMinor is manual/ad hoc.
+/// snapshot sum but are independently editable pre-approval.
+/// otherDeductionMinor is manual/ad hoc.
 model PayrollItem {
-  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId String @map("tenant_id") @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
-  payrollRunId   String @map("payroll_run_id") @db.Uuid
-  userId         String @map("user_id") @db.Uuid
-  staffProfileId String @map("staff_profile_id") @db.Uuid
+  payrollRunId      String @map("payroll_run_id") @db.Uuid
+  userId            String @map("user_id") @db.Uuid
+  employeeProfileId String @map("employee_profile_id") @db.Uuid
   /// ISO 4217 — copied from the run at generation time
-  currency       String
+  currency          String
 
   /// locked at generation — never editable
   baseSalaryMinor               BigInt @map("base_salary_minor")
@@ -822,13 +386,11 @@ model PayrollItem {
   /// derived: base + allowances + Σadditions − statutory − other − absence − leave − Σextra deductions
   netPayMinor BigInt @map("net_pay_minor")
 
-  /// Days of the payroll month this item is actually paid for — purely the staff member's Date of
+  /// Days of the payroll month this item is actually paid for — purely the employee's Date of
   /// Join (packages/shared/src/money.ts paidDaysForJoin); equal to the month's full day count for
   /// the common case (joined before this month). Unpaid leave does NOT reduce this — it's its own
-  /// deduction line (leaveDeductionMinor) instead, so Base Salary/Allowances/Statutory proration
-  /// only ever reflects joining mid-month. Decimal for consistency with the other day-count
-  /// columns here, though join-date proration itself is always a whole number of days. Locked at
-  /// generation like every other snapshotted figure here.
+  /// deduction line (leaveDeductionMinor) instead. Locked at generation like every other
+  /// snapshotted figure here.
   paidDays Decimal @map("paid_days") @db.Decimal(5, 2)
 
   status PayrollItemStatus @default(pending)
@@ -845,26 +407,25 @@ model PayrollItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  payrollRun   PayrollRun              @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  user         User                    @relation(fields: [userId], references: [id])
-  staffProfile StaffProfile            @relation(fields: [staffProfileId], references: [id])
-  batch        PayrollActionBatch?     @relation(fields: [batchId], references: [id])
-  components   PayrollItemComponent[]
-  adjustments  PayrollItemAdjustment[]
+  payrollRun      PayrollRun              @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  user            User                    @relation(fields: [userId], references: [id])
+  employeeProfile EmployeeProfile         @relation(fields: [employeeProfileId], references: [id])
+  batch           PayrollActionBatch?     @relation(fields: [batchId], references: [id])
+  components      PayrollItemComponent[]
+  adjustments     PayrollItemAdjustment[]
 
   @@unique([payrollRunId, userId])
-  @@index([tenantId, status])
+  @@index([status])
   @@index([batchId])
   @@map("payroll_items")
 }
 
-/// Read-only snapshot of the staff member's configured allowance/deduction
+/// Read-only snapshot of the employee's configured allowance/deduction
 /// components at generation time — display-only breakdown; the editable
 /// totals live on PayrollItem and are never re-derived from this after
-/// generation (so a later Staff edit can't silently change a submitted run).
+/// generation (so a later Employee edit can't silently change a submitted run).
 model PayrollItemComponent {
   id            String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String                   @map("tenant_id") @db.Uuid
   payrollItemId String                   @map("payroll_item_id") @db.Uuid
   category      PayrollComponentCategory
   nameEn        String                   @map("name_en")
@@ -873,7 +434,6 @@ model PayrollItemComponent {
 
   payrollItem PayrollItem @relation(fields: [payrollItemId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@index([payrollItemId])
   @@map("payroll_item_components")
 }
@@ -888,7 +448,6 @@ enum PayrollAdjustmentType {
 /// the deductions side for `deduction`.
 model PayrollItemAdjustment {
   id            String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId      String                @map("tenant_id") @db.Uuid
   payrollItemId String                @map("payroll_item_id") @db.Uuid
   type          PayrollAdjustmentType
   labelEn       String                @map("label_en")
@@ -898,7 +457,6 @@ model PayrollItemAdjustment {
 
   payrollItem PayrollItem @relation(fields: [payrollItemId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@index([payrollItemId])
   @@map("payroll_item_adjustments")
 }
@@ -913,7 +471,6 @@ enum PayrollBatchAction {
 /// computed on read over the linked items, never stored here.
 model PayrollActionBatch {
   id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId     String             @map("tenant_id") @db.Uuid
   branchId     String             @map("branch_id") @db.Uuid
   payrollRunId String             @map("payroll_run_id") @db.Uuid
   action       PayrollBatchAction
@@ -927,12 +484,11 @@ model PayrollActionBatch {
   items      PayrollItem[]
 
   @@unique([payrollRunId, batchNo])
-  @@index([tenantId])
   @@map("payroll_action_batches")
 }
 
 // -----------------------------------------------------------------------
-// Attendance & Leave — docs/MODULES/attendance.md, leave.md, leave-settings.md
+// Attendance & Leave
 // -----------------------------------------------------------------------
 
 enum AttendanceDayStatus {
@@ -953,14 +509,13 @@ enum AttendanceSource {
   manual
 }
 
-/// One row per staff per calendar day. Denormalized/recomputed whenever its
+/// One row per employee per calendar day. Denormalized/recomputed whenever its
 /// sessions change (never re-derived on read) — same snapshot convention as
 /// PayrollItem. An approved LeaveRequest overlapping this date forces
-/// status = on_leave regardless of session data (docs/MODULES/leave.md).
+/// status = on_leave regardless of session data.
 model AttendanceDay {
   id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId           String              @map("tenant_id") @db.Uuid
-  staffProfileId     String              @map("staff_profile_id") @db.Uuid
+  employeeProfileId  String              @map("employee_profile_id") @db.Uuid
   date               DateTime            @db.Date
   status             AttendanceDayStatus
   firstInAt          DateTime?           @map("first_in_at")
@@ -972,11 +527,11 @@ model AttendanceDay {
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
 
-  staffProfile StaffProfile        @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
-  sessions     AttendanceSession[]
+  employeeProfile EmployeeProfile     @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  sessions        AttendanceSession[]
 
-  @@unique([tenantId, staffProfileId, date])
-  @@index([tenantId, staffProfileId])
+  @@unique([employeeProfileId, date])
+  @@index([employeeProfileId])
   @@map("attendance_days")
 }
 
@@ -984,10 +539,9 @@ model AttendanceDay {
 /// sessions on the same day is derived at read time, never stored.
 model AttendanceSession {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String           @map("tenant_id") @db.Uuid
   attendanceDayId String           @map("attendance_day_id") @db.Uuid
   checkInAt       DateTime         @map("check_in_at")
-  /// null while the staff member is still checked in
+  /// null while the employee is still checked in
   checkOutAt      DateTime?        @map("check_out_at")
   source          AttendanceSource
   createdByUserId String           @map("created_by_user_id") @db.Uuid
@@ -995,7 +549,6 @@ model AttendanceSession {
 
   attendanceDay AttendanceDay @relation(fields: [attendanceDayId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
   @@index([attendanceDayId])
   @@map("attendance_sessions")
 }
@@ -1021,7 +574,6 @@ enum LeaveCreditPolicy {
 /// row, same convention as PayrollComponent.
 model LeaveType {
   id                        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId                  String            @map("tenant_id") @db.Uuid
   nameEn                    String            @map("name_en")
   nameAr                    String            @map("name_ar")
   isPaid                    Boolean           @default(true) @map("is_paid")
@@ -1036,8 +588,8 @@ model LeaveType {
   allowHalfDay              Boolean           @default(false) @map("allow_half_day")
   requireSupportingDocument Boolean           @default(false) @map("require_supporting_document")
   allowNegativeBalance      Boolean           @default(false) @map("allow_negative_balance")
-  /// docs/MODULES/leave.md "Additions beyond the literal screenshots" — not
-  /// in the design mockup, added to make approval levels configurable per type
+  /// Not in the original design mockup — added to make approval levels
+  /// configurable per type.
   requiresSecondApproval    Boolean           @default(false) @map("requires_second_approval")
   isActive                  Boolean           @default(true) @map("is_active")
   sortOrder                 Int               @default(0) @map("sort_order")
@@ -1047,36 +599,35 @@ model LeaveType {
   balances LeaveBalance[]
   requests LeaveRequest[]
 
-  @@unique([tenantId, nameEn])
-  @@index([tenantId, isActive])
+  @@unique([nameEn])
+  @@index([isActive])
   @@map("leave_types")
 }
 
-/// One row per staff per leave type per calendar year. closingBalance is
+/// One row per employee per leave type per calendar year. closingBalance is
 /// computed on read (opening + accrued + carriedForward - used) — never
 /// stored — same "computed on read" convention as Gross/Net salary and
 /// payroll batch aggregates.
 model LeaveBalance {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String    @map("tenant_id") @db.Uuid
-  staffProfileId String    @map("staff_profile_id") @db.Uuid
-  leaveTypeId    String    @map("leave_type_id") @db.Uuid
-  year           Int
-  openingBalance Decimal   @default(0) @map("opening_balance") @db.Decimal(6, 2)
-  accrued        Decimal   @default(0) @db.Decimal(6, 2)
-  used           Decimal   @default(0) @db.Decimal(6, 2)
-  carriedForward Decimal   @default(0) @map("carried_forward") @db.Decimal(6, 2)
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employeeProfileId String    @map("employee_profile_id") @db.Uuid
+  leaveTypeId       String    @map("leave_type_id") @db.Uuid
+  year              Int
+  openingBalance    Decimal   @default(0) @map("opening_balance") @db.Decimal(6, 2)
+  accrued           Decimal   @default(0) @db.Decimal(6, 2)
+  used              Decimal   @default(0) @db.Decimal(6, 2)
+  carriedForward    Decimal   @default(0) @map("carried_forward") @db.Decimal(6, 2)
   /// date of the last scheduled accrual credit applied — makes the daily accrual
   /// job idempotent per credit-policy period (see leave-accrual.job.ts)
-  lastAccruedAt  DateTime? @map("last_accrued_at") @db.Date
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  lastAccruedAt     DateTime? @map("last_accrued_at") @db.Date
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
-  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id])
+  employeeProfile EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType       @relation(fields: [leaveTypeId], references: [id])
 
-  @@unique([tenantId, staffProfileId, leaveTypeId, year])
-  @@index([tenantId, staffProfileId])
+  @@unique([employeeProfileId, leaveTypeId, year])
+  @@index([employeeProfileId])
   @@map("leave_balances")
 }
 
@@ -1097,252 +648,45 @@ enum LeaveHalfDayPeriod {
   second_half
 }
 
-/// A staff member's (or an admin-on-behalf) request against a LeaveType.
+/// An employee's (or an admin-on-behalf) request against a LeaveType.
 /// Approval writes firstApproverId/firstApprovedAt at the first step and
 /// approverUserId/approvedAt at final approval — identical for single-step
 /// types, since firstApprover and approver end up the same actor/timestamp.
 model LeaveRequest {
-  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String              @map("tenant_id") @db.Uuid
-  staffProfileId  String              @map("staff_profile_id") @db.Uuid
-  leaveTypeId     String              @map("leave_type_id") @db.Uuid
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employeeProfileId String              @map("employee_profile_id") @db.Uuid
+  leaveTypeId       String              @map("leave_type_id") @db.Uuid
   /// snapshot at request time, for branch-scoped approval queries
-  branchId        String              @map("branch_id") @db.Uuid
-  startDate       DateTime            @map("start_date") @db.Date
-  endDate         DateTime            @map("end_date") @db.Date
+  branchId          String              @map("branch_id") @db.Uuid
+  startDate         DateTime            @map("start_date") @db.Date
+  endDate           DateTime            @map("end_date") @db.Date
   /// the start date is only a half day (range requests only — see LeaveHalfDayPeriod)
-  startHalfDay    Boolean             @default(false) @map("start_half_day")
+  startHalfDay      Boolean             @default(false) @map("start_half_day")
   /// the end date is only a half day (range requests only)
-  endHalfDay      Boolean             @default(false) @map("end_half_day")
+  endHalfDay        Boolean             @default(false) @map("end_half_day")
   /// set only for a single-day request (startDate === endDate) that's a half day
-  halfDayPeriod   LeaveHalfDayPeriod? @map("half_day_period")
-  daysCount       Decimal             @map("days_count") @db.Decimal(5, 2)
-  reason          String?
-  status          LeaveRequestStatus  @default(pending)
-  firstApproverId String?             @map("first_approver_id") @db.Uuid
-  firstApprovedAt DateTime?           @map("first_approved_at")
-  approverUserId  String?             @map("approver_user_id") @db.Uuid
-  approvedAt      DateTime?           @map("approved_at")
-  rejectionReason String?             @map("rejection_reason")
-  /// self-filed vs. an admin filing on the staff member's behalf
-  createdByUserId String              @map("created_by_user_id") @db.Uuid
+  halfDayPeriod     LeaveHalfDayPeriod? @map("half_day_period")
+  daysCount         Decimal             @map("days_count") @db.Decimal(5, 2)
+  reason            String?
+  status            LeaveRequestStatus  @default(pending)
+  firstApproverId   String?             @map("first_approver_id") @db.Uuid
+  firstApprovedAt   DateTime?           @map("first_approved_at")
+  approverUserId    String?             @map("approver_user_id") @db.Uuid
+  approvedAt        DateTime?           @map("approved_at")
+  rejectionReason   String?             @map("rejection_reason")
+  /// self-filed vs. an admin filing on the employee's behalf
+  createdByUserId   String              @map("created_by_user_id") @db.Uuid
   /// S3 object key, set only when the leave type requires a supporting document —
   /// never a public URL; a presigned GET URL is generated fresh on every view
-  attachmentKey   String?             @map("attachment_key")
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  attachmentKey     String?             @map("attachment_key")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
 
-  staffProfile StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
-  leaveType    LeaveType    @relation(fields: [leaveTypeId], references: [id])
-  branch       Branch       @relation(fields: [branchId], references: [id])
+  employeeProfile EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType       @relation(fields: [leaveTypeId], references: [id])
+  branch          Branch          @relation(fields: [branchId], references: [id])
 
-  @@index([tenantId, staffProfileId])
-  @@index([tenantId, branchId, status])
+  @@index([employeeProfileId])
+  @@index([branchId, status])
   @@map("leave_requests")
-}
-
-// ─── POS / Checkout + minimal Inventory + Finance ledger (Phase 4) ───────────
-
-enum ProductStatus {
-  active
-  inactive
-}
-
-enum InvoiceStatus {
-  paid
-  partially_paid
-  void
-}
-
-enum PaymentMethod {
-  cash
-  card
-  mada
-  bank_transfer
-  ewallet
-}
-
-enum InvoiceItemType {
-  service
-  product
-  package
-  membership
-}
-
-enum StockMovementType {
-  sale
-  consumption
-  grn_receipt
-  transfer_out
-  transfer_in
-  adjustment
-  return
-}
-
-enum FinanceDirection {
-  in
-  out
-}
-
-/// Retail product master (catalogue, shared across tenant). Stock is held per
-/// branch in StockLevel. Full Inventory module (categories, transfers, GRN) is
-/// Phase 7; this is the minimal slice POS needs. Prices are BIGINT minor units.
-model Product {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String        @map("tenant_id") @db.Uuid
-  nameEn         String        @map("name_en")
-  nameAr         String?       @map("name_ar")
-  sku            String
-  brand          String?
-  salePriceMinor BigInt        @map("sale_price_minor")
-  costPriceMinor BigInt        @default(0) @map("cost_price_minor")
-  reorderLevel   Int           @default(0) @map("reorder_level")
-  unit           String        @default("pcs")
-  status         ProductStatus @default(active)
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-  createdBy      String?       @map("created_by") @db.Uuid
-  updatedBy      String?       @map("updated_by") @db.Uuid
-  deletedAt      DateTime?     @map("deleted_at")
-
-  stockLevels StockLevel[]
-
-  @@unique([tenantId, sku])
-  @@index([tenantId, status])
-  @@map("products")
-}
-
-/// Per-branch on-hand quantity for a product. Negative stock is hard-prohibited
-/// (checked in the POS checkout transaction before decrementing).
-model StockLevel {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
-  branchId  String   @map("branch_id") @db.Uuid
-  productId String   @map("product_id") @db.Uuid
-  quantity  Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([branchId, productId])
-  @@index([tenantId, branchId])
-  @@map("stock_levels")
-}
-
-/// Append-only ledger of every stock change. `quantity` is a signed delta
-/// (negative on sale). refType/refId link back to the source (e.g. an invoice).
-model StockMovement {
-  id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId  String            @map("tenant_id") @db.Uuid
-  branchId  String            @map("branch_id") @db.Uuid
-  productId String            @map("product_id") @db.Uuid
-  type      StockMovementType
-  quantity  Int
-  reason    String?
-  refType   String?           @map("ref_type")
-  refId     String?           @map("ref_id") @db.Uuid
-  createdBy String?           @map("created_by") @db.Uuid
-  createdAt DateTime          @default(now()) @map("created_at")
-
-  @@index([tenantId, branchId, productId])
-  @@map("stock_movements")
-}
-
-/// A completed POS sale. Totals are BIGINT minor units of `currency`; tax
-/// breakdown is snapshot at sale time (never rewritten by later profile edits).
-/// Invariant: sum(items.lineTotal) − discount + tax === total === sum(payments).
-model Invoice {
-  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId             String        @map("tenant_id") @db.Uuid
-  branchId             String        @map("branch_id") @db.Uuid
-  /// human-readable per-tenant reference, e.g. INV-2026-000123
-  invoiceNo            String        @map("invoice_no")
-  customerId           String?       @map("customer_id") @db.Uuid
-  /// originating completed appointment (entry point 2), if any
-  appointmentId        String?       @map("appointment_id") @db.Uuid
-  /// originating Walk-in Queue entry (entry point 3), if any — bare column,
-  /// no Prisma relation/FK, same pattern as appointmentId above
-  walkInQueueEntryId   String?       @map("walk_in_queue_entry_id") @db.Uuid
-  /// user who processed the sale
-  cashierId            String?       @map("cashier_id") @db.Uuid
-  status               InvoiceStatus @default(paid)
-  subtotalMinor        BigInt        @map("subtotal_minor")
-  discountMinor        BigInt        @default(0) @map("discount_minor")
-  loyaltyRedeemedMinor BigInt        @default(0) @map("loyalty_redeemed_minor")
-  taxMinor             BigInt        @map("tax_minor")
-  /// per-component tax snapshot: [{ name, ratePercent, amountMinor }]
-  taxBreakdown         Json          @map("tax_breakdown")
-  totalMinor           BigInt        @map("total_minor")
-  currency             String
-  notes                String?
-  createdAt            DateTime      @default(now()) @map("created_at")
-  updatedAt            DateTime      @updatedAt @map("updated_at")
-
-  customer Customer?     @relation(fields: [customerId], references: [id])
-  items    InvoiceItem[]
-  payments Payment[]
-
-  @@unique([tenantId, invoiceNo])
-  @@index([tenantId, branchId, createdAt])
-  @@index([tenantId, customerId])
-  @@index([tenantId, status])
-  @@map("invoices")
-}
-
-/// One sold line. Name + unit price are snapshot at sale. `staffId` is the
-/// serving staff for commission attribution (computed later; Phase 7).
-model InvoiceItem {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId       String          @map("tenant_id") @db.Uuid
-  invoiceId      String          @map("invoice_id") @db.Uuid
-  itemType       InvoiceItemType @map("item_type")
-  /// serviceId or productId
-  itemId         String          @map("item_id") @db.Uuid
-  nameEn         String          @map("name_en")
-  nameAr         String?         @map("name_ar")
-  unitPriceMinor BigInt          @map("unit_price_minor")
-  quantity       Int             @default(1)
-  lineTotalMinor BigInt          @map("line_total_minor")
-  staffId        String?         @map("staff_id") @db.Uuid
-
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, invoiceId])
-  @@map("invoice_items")
-}
-
-/// One payment against an invoice; a split payment is multiple rows.
-model Payment {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String        @map("tenant_id") @db.Uuid
-  invoiceId   String        @map("invoice_id") @db.Uuid
-  method      PaymentMethod
-  amountMinor BigInt        @map("amount_minor")
-  reference   String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, invoiceId])
-  @@map("payments")
-}
-
-/// Unified finance ledger. POS writes one `sale_revenue` (direction=in) row per
-/// completed sale; other modules append their own categories later.
-model FinanceTransaction {
-  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId    String           @map("tenant_id") @db.Uuid
-  branchId    String           @map("branch_id") @db.Uuid
-  direction   FinanceDirection
-  category    String
-  amountMinor BigInt           @map("amount_minor")
-  currency    String
-  refType     String?          @map("ref_type")
-  refId       String?          @map("ref_id") @db.Uuid
-  occurredAt  DateTime         @default(now()) @map("occurred_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-
-  @@index([tenantId, branchId, occurredAt])
-  @@index([tenantId, category])
-  @@map("finance_transactions")
 }

@@ -13,7 +13,6 @@ import { setRequestContext } from "../request-context";
 
 export interface AccessTokenPayload {
   sub: string;
-  tenantId: string;
   roleId: string;
   allBranches: boolean;
   branchIds: string[];
@@ -22,7 +21,7 @@ export interface AccessTokenPayload {
 /**
  * Global guard: verifies the Bearer access token and populates both the
  * request object (`req.userContext`) and CLS — everything downstream
- * (PermissionsGuard, tenancy extension, audit) reads from CLS.
+ * (PermissionsGuard, audit) reads from CLS.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -61,7 +60,6 @@ export class JwtAuthGuard implements CanActivate {
 
     const userContext = {
       userId: payload.sub,
-      tenantId: payload.tenantId,
       roleId: payload.roleId,
       allBranches: payload.allBranches,
       branchIds: payload.branchIds ?? [],

@@ -33,7 +33,6 @@ export type AuthTokens = z.infer<typeof AuthTokensSchema>;
 
 export const AuthUserSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
   name: z.string(),
   email: z.string().email().nullable(),
   username: z.string(),
@@ -46,7 +45,7 @@ export const AuthUserSchema = z.object({
   allBranches: z.boolean(),
   branchIds: z.array(z.string().uuid()),
   locale: z.enum(["en", "ar"]),
-  /** tenant default currency (ISO 4217) — catalog prices are entered in it */
+  /** company default currency (ISO 4217, fixed to AED) — catalog prices are entered in it */
   currency: z.string(),
 });
 export type AuthUser = z.infer<typeof AuthUserSchema>;

@@ -3,10 +3,10 @@ import { LEAVE_COUNT_MODES, LEAVE_CREDIT_POLICIES } from "../enums";
 import { PaginationQuerySchema } from "./common";
 
 /**
- * Settings > Leave Settings catalog (docs/MODULES/leave-settings.md).
- * [leave](./leave.ts) requests/balances reference a LeaveType by id — this
- * is the tenant-configured catalog they draw from, same "catalog vs.
- * instance" split as PayrollComponent/StaffPayrollComponent.
+ * Settings > Leave Settings catalog. [leave](./leave.ts) requests/balances
+ * reference a LeaveType by id — this is the configured catalog they draw
+ * from, same "catalog vs. instance" split as
+ * PayrollComponent/EmployeePayrollComponent.
  */
 
 export const LeaveCountModeSchema = z.enum(LEAVE_COUNT_MODES);

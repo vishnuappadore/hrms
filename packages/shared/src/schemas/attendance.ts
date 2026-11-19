@@ -3,10 +3,10 @@ import { ATTENDANCE_DAY_STATUSES, ATTENDANCE_SOURCES } from "../enums";
 import { PaginationQuerySchema } from "./common";
 
 /**
- * Check-in/check-out capture (docs/MODULES/attendance.md). Self check-in/
- * check-out take no body — the server resolves the caller's own staff
- * profile and stamps `now()`. Everything below is for the Today/Monthly
- * views and admin correction of another staff member's day.
+ * Check-in/check-out capture. Self check-in/check-out take no body — the
+ * server resolves the caller's own employee profile and stamps `now()`.
+ * Everything below is for the Today/Monthly views and admin correction of
+ * another employee's day.
  */
 
 export const AttendanceDayStatusSchema = z.enum(ATTENDANCE_DAY_STATUSES);
@@ -38,8 +38,8 @@ export const AttendanceKpisQuerySchema = ListAttendanceQuerySchema.omit({
 export type AttendanceKpisQuery = z.infer<typeof AttendanceKpisQuerySchema>;
 
 /**
- * Today scope: counts of staff currently in each state. Monthly scope: totals
- * summed across every staff member's month (same field names, different
+ * Today scope: counts of employees currently in each state. Monthly scope:
+ * totals summed across every employee's month (same field names, different
  * grain — the web layer picks the label per scope, e.g. "Present Today" vs
  * "Present Days").
  */
@@ -52,7 +52,7 @@ export const AttendanceKpisSchema = z.object({
 });
 export type AttendanceKpis = z.infer<typeof AttendanceKpisSchema>;
 
-const StaffRefSchema = z.object({
+const EmployeeRefSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   branchName: z.string().nullable(),
@@ -60,7 +60,7 @@ const StaffRefSchema = z.object({
 
 /** One row of the Today or Monthly attendance table. */
 export const AttendanceDaySummarySchema = z.object({
-  staff: StaffRefSchema,
+  employee: EmployeeRefSchema,
   date: z.coerce.date(),
   status: AttendanceDayStatusSchema,
   firstInAt: z.coerce.date().nullable(),
@@ -70,9 +70,9 @@ export const AttendanceDaySummarySchema = z.object({
 });
 export type AttendanceDaySummary = z.infer<typeof AttendanceDaySummarySchema>;
 
-/** Aggregate rollup for a staff member across a month (Monthly-view row / detail header). */
+/** Aggregate rollup for an employee across a month (Monthly-view row / detail header). */
 export const AttendanceMonthlyAggregateSchema = z.object({
-  staff: StaffRefSchema,
+  employee: EmployeeRefSchema,
   month: z.string(),
   presentDays: z.number().int(),
   lateDays: z.number().int(),
@@ -109,9 +109,9 @@ export const MyAttendanceTodaySchema = z.object({
 });
 export type MyAttendanceToday = z.infer<typeof MyAttendanceTodaySchema>;
 
-/** Check-in/out log dialog (one staff, one day). */
+/** Check-in/out log dialog (one employee, one day). */
 export const AttendanceDayDetailSchema = z.object({
-  staff: StaffRefSchema,
+  employee: EmployeeRefSchema,
   date: z.coerce.date(),
   status: AttendanceDayStatusSchema,
   firstInAt: z.coerce.date().nullable(),
@@ -124,7 +124,7 @@ export const AttendanceDayDetailSchema = z.object({
 });
 export type AttendanceDayDetail = z.infer<typeof AttendanceDayDetailSchema>;
 
-/** Per-staff daily breakdown for a month (docs/MODULES/attendance.md screen 4). */
+/** Per-employee daily breakdown for a month. */
 export const AttendanceMonthlyDayRowSchema = z.object({
   date: z.coerce.date(),
   status: AttendanceDayStatusSchema,
@@ -213,10 +213,10 @@ function assertSessionOrdering(v: { checkInAt: Date; checkOutAt: Date | null }[]
 }
 
 /**
- * `PATCH /attendance/:staffProfileId/days/:date` body — full-replace of that
- * day's sessions (same convention as `SavePayrollComponentsSchema`), gated
- * on `attendance.edit`. Sets `isManualEntry` and stamps `editedByUserId`/
- * `editedAt` on the recomputed day.
+ * `PATCH /attendance/:employeeProfileId/days/:date` body — full-replace of
+ * that day's sessions (same convention as `SavePayrollComponentsSchema`),
+ * gated on `attendance.edit`. Sets `isManualEntry` and stamps
+ * `editedByUserId`/`editedAt` on the recomputed day.
  */
 export const UpdateAttendanceDaySchema = z.object({
   sessions: z.array(ManualSessionInputSchema).max(50),

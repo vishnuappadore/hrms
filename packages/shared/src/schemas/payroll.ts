@@ -6,15 +6,14 @@ import {
   PAYROLL_TABS,
 } from "../enums";
 import { PaginationQuerySchema } from "./common";
-import { PayrollComponentCategorySchema } from "./staff";
+import { PayrollComponentCategorySchema } from "./employee";
 
 /**
- * Payroll v1 scope (docs/MODULES/payroll.md): Commission is still deliberately
- * absent from every schema below — commission_records (POS) doesn't exist yet.
- * Absence Deduction and Leave Deduction (unpaid leave) have landed (Attendance/
- * Leave) — both separate, Gross-based deduction lines; `paidDays` reflects only
- * Date of Join. See `absenceDeductionMinor`/`absentDays`,
- * `leaveDeductionMinor`/`unpaidLeaveDays`, and `paidDays` below.
+ * Payroll scope: Commission is deliberately absent from every schema below
+ * (no commission source module exists). Absence Deduction and Leave
+ * Deduction (unpaid leave) are both separate, Gross-based deduction lines;
+ * `paidDays` reflects only Date of Join. See `absenceDeductionMinor`/
+ * `absentDays`, `leaveDeductionMinor`/`unpaidLeaveDays`, and `paidDays` below.
  */
 
 export const PayrollMonthSchema = z
@@ -59,7 +58,7 @@ export type PayrollRun = z.infer<typeof PayrollRunSchema>;
  * the same "existing items are never recounted/touched" rule as generation
  * itself: `totalEmployeeCount` is `existingEmployeeCount + newEmployeeCount`,
  * not a fresh eligibility recount (an item already in the run stays counted
- * even if that staff member is no longer eligible today).
+ * even if that employee is no longer eligible today).
  */
 export const PayrollRunPreviewSchema = z.object({
   runExists: z.boolean(),
@@ -77,7 +76,7 @@ export type PayrollRunPreview = z.infer<typeof PayrollRunPreviewSchema>;
 
 /* ── Payslip breakdown rows ──────────────────────────────────────────────── */
 
-/** Read-only snapshot of a staff member's configured allowance/deduction components. */
+/** Read-only snapshot of an employee's configured allowance/deduction components. */
 export const PayrollItemComponentSchema = z.object({
   category: PayrollComponentCategorySchema,
   nameEn: z.string(),
@@ -102,7 +101,7 @@ export type PayrollAdjustmentOutput = z.infer<typeof PayrollAdjustmentSchema>;
 
 /* ── Items (payroll listing rows + payslip detail) ──────────────────────── */
 
-const PayrollStaffSummarySchema = z.object({
+const PayrollEmployeeSummarySchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   role: z.string().nullable(),
@@ -113,7 +112,7 @@ const PayrollStaffSummarySchema = z.object({
 
 export const PayrollItemSummarySchema = z.object({
   id: z.string().uuid(),
-  staff: PayrollStaffSummarySchema,
+  employee: PayrollEmployeeSummarySchema,
   currency: z.string(),
   baseSalaryMinor: z.number().int(),
   allowancesTotalMinor: z.number().int(),
@@ -135,7 +134,7 @@ export const PayrollItemSummarySchema = z.object({
   status: PayrollItemStatusSchema,
   batchNo: z.number().int().nullable(),
   /**
-   * Days this item was actually paid for in `totalDaysInMonth` days — purely the staff member's
+   * Days this item was actually paid for in `totalDaysInMonth` days — purely the employee's
    * Date of Join (packages/shared/src/money.ts `paidDaysForJoin`). Equal to `totalDaysInMonth` for
    * the common case (joined before this month). Unpaid leave does NOT reduce this — it's its own
    * deduction line (leaveDeductionMinor) instead. Frozen at generation time like every other

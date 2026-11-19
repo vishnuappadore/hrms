@@ -2,7 +2,6 @@ import { ClsService } from "nestjs-cls";
 
 /** Keys stored in CLS (AsyncLocalStorage) for the lifetime of one request. */
 export interface RequestContext {
-  tenantId: string;
   userId: string;
   roleId: string;
   allBranches: boolean;
@@ -11,7 +10,6 @@ export interface RequestContext {
 }
 
 export const CLS_KEYS = {
-  tenantId: "ctx.tenantId",
   userId: "ctx.userId",
   roleId: "ctx.roleId",
   allBranches: "ctx.allBranches",
@@ -20,15 +18,10 @@ export const CLS_KEYS = {
 } as const;
 
 export function setRequestContext(cls: ClsService, ctx: Omit<RequestContext, "requestId">): void {
-  cls.set(CLS_KEYS.tenantId, ctx.tenantId);
   cls.set(CLS_KEYS.userId, ctx.userId);
   cls.set(CLS_KEYS.roleId, ctx.roleId);
   cls.set(CLS_KEYS.allBranches, ctx.allBranches);
   cls.set(CLS_KEYS.branchIds, ctx.branchIds);
-}
-
-export function getTenantId(cls: ClsService): string | undefined {
-  return cls.get(CLS_KEYS.tenantId);
 }
 
 /**

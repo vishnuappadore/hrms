@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EMPLOYMENT_TYPES, STAFF_STATUSES } from "../enums";
+import { EMPLOYEE_STATUSES, EMPLOYMENT_TYPES } from "../enums";
 import { MobileSchema } from "./common";
 import { assertBranchAssignment, CreateUserSchema, UserSchema } from "./user";
 
@@ -8,8 +8,8 @@ import { assertBranchAssignment, CreateUserSchema, UserSchema } from "./user";
 export const GenderSchema = z.enum(["male", "female"]);
 export type Gender = z.infer<typeof GenderSchema>;
 
-/** Staff availability, distinct from the login-only account `status` on User. */
-export const StaffStatusSchema = z.enum(STAFF_STATUSES);
+/** Employee availability, distinct from the login-only account `status` on User. */
+export const EmployeeStatusSchema = z.enum(EMPLOYEE_STATUSES);
 
 export const EmploymentTypeSchema = z.enum(EMPLOYMENT_TYPES);
 
@@ -25,7 +25,7 @@ const PayrollComponentFieldsSchema = z.object({
   nameEn: z.string().min(1).max(100),
   nameAr: z.string().min(1).max(100),
   basis: PayrollComponentBasisSchema,
-  /** integer minor units in the tenant currency; required iff basis = fixed_amount */
+  /** integer minor units in AED; required iff basis = fixed_amount */
   defaultAmountMinor: z.number().int().min(0).nullable().optional(),
   /** percent of base salary; required iff basis = percentage_of_base */
   defaultRatePct: z.number().min(0).max(100).nullable().optional(),
@@ -76,39 +76,39 @@ export const PayrollComponentSchema = PayrollComponentFieldsSchema.extend({
 });
 export type PayrollComponent = z.infer<typeof PayrollComponentSchema>;
 
-/* ── Staff salary — allowance/deduction rows selected on a staff profile ──── */
+/* ── Employee salary — allowance/deduction rows selected on an employee profile ──── */
 
-export const StaffPayrollComponentInputSchema = z.object({
+export const EmployeePayrollComponentInputSchema = z.object({
   payrollComponentId: z.string().uuid(),
   amountMinor: z.number().int().min(0),
 });
-export type StaffPayrollComponentInput = z.infer<typeof StaffPayrollComponentInputSchema>;
+export type EmployeePayrollComponentInput = z.infer<typeof EmployeePayrollComponentInputSchema>;
 
-export const StaffPayrollComponentSchema = z.object({
+export const EmployeePayrollComponentSchema = z.object({
   payrollComponentId: z.string().uuid(),
   nameEn: z.string(),
   nameAr: z.string(),
   amountMinor: z.number().int(),
 });
-export type StaffPayrollComponentOutput = z.infer<typeof StaffPayrollComponentSchema>;
+export type EmployeePayrollComponentOutput = z.infer<typeof EmployeePayrollComponentSchema>;
 
-/* ── Staff (extends the User/System-Access schema with profile + salary) ──── */
+/* ── Employee (extends the User/System-Access schema with profile + salary) ──── */
 
-const StaffProfileFieldsSchema = z.object({
+const EmployeeProfileFieldsSchema = z.object({
   mobile: MobileSchema,
   gender: GenderSchema,
-  staffStatus: StaffStatusSchema.default("active"),
+  employeeStatus: EmployeeStatusSchema.default("active"),
   primaryBranchId: z.string().uuid(),
   employmentType: EmploymentTypeSchema,
   joiningDate: z.coerce.date().nullable().optional(),
-  /** another staff member this person reports to; must not be self (service-checked) */
+  /** another employee this person reports to; must not be self (service-checked) */
   reportingManagerId: z.string().uuid().nullable().optional(),
-  /** integer minor units of the tenant currency (packages/shared money.ts) */
+  /** integer minor units of AED (packages/shared/src/money.ts) */
   baseSalaryMinor: z.number().int().min(0).default(0),
   commissionEnabled: z.boolean().default(false),
   commissionRatePct: z.number().min(0).max(100).nullable().optional(),
-  allowances: z.array(StaffPayrollComponentInputSchema).max(50).default([]),
-  deductions: z.array(StaffPayrollComponentInputSchema).max(50).default([]),
+  allowances: z.array(EmployeePayrollComponentInputSchema).max(50).default([]),
+  deductions: z.array(EmployeePayrollComponentInputSchema).max(50).default([]),
 });
 
 /** Exported so the web wizard's client-side schema can apply the same rule. */
@@ -143,23 +143,23 @@ export function assertPrimaryBranchAssigned(
   }
 }
 
-export const CreateStaffSchema = CreateUserSchema.innerType()
-  .extend({ ...StaffProfileFieldsSchema.shape, email: z.string().email().max(254) })
+export const CreateEmployeeSchema = CreateUserSchema.innerType()
+  .extend({ ...EmployeeProfileFieldsSchema.shape, email: z.string().email().max(254) })
   .superRefine((v, ctx) => {
     assertBranchAssignment(v, ctx);
     assertCommissionRate(v, ctx);
     assertPrimaryBranchAssigned(v, ctx);
   });
-export type CreateStaffInput = z.infer<typeof CreateStaffSchema>;
+export type CreateEmployeeInput = z.infer<typeof CreateEmployeeSchema>;
 
-export const UpdateStaffSchema = CreateStaffSchema.innerType().omit({ password: true }).partial();
-export type UpdateStaffInput = z.infer<typeof UpdateStaffSchema>;
+export const UpdateEmployeeSchema = CreateEmployeeSchema.innerType().omit({ password: true }).partial();
+export type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeSchema>;
 
-/** API response shape for the staff create/update/get-by-id routes. */
-export const StaffSchema = UserSchema.extend({
+/** API response shape for the employee create/update/get-by-id routes. */
+export const EmployeeSchema = UserSchema.extend({
   mobile: z.string().nullable(),
   gender: GenderSchema.nullable(),
-  staffStatus: StaffStatusSchema,
+  employeeStatus: EmployeeStatusSchema,
   primaryBranchId: z.string().uuid().nullable(),
   employmentType: EmploymentTypeSchema.nullable(),
   joiningDate: z.coerce.date().nullable(),
@@ -167,11 +167,11 @@ export const StaffSchema = UserSchema.extend({
   baseSalaryMinor: z.number().int(),
   commissionEnabled: z.boolean(),
   commissionRatePct: z.number().nullable(),
-  allowances: z.array(StaffPayrollComponentSchema),
-  deductions: z.array(StaffPayrollComponentSchema),
+  allowances: z.array(EmployeePayrollComponentSchema),
+  deductions: z.array(EmployeePayrollComponentSchema),
   /** computed = baseSalaryMinor + Σ allowances; never stored */
   grossSalaryMinor: z.number().int(),
   /** computed = grossSalaryMinor − Σ deductions; never stored */
   netSalaryMinor: z.number().int(),
 });
-export type Staff = z.infer<typeof StaffSchema>;
+export type Employee = z.infer<typeof EmployeeSchema>;

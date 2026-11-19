@@ -16,8 +16,8 @@ export const LeaveHalfDayPeriodSchema = z.enum(LEAVE_HALF_DAY_PERIODS);
 
 const CreateLeaveRequestFieldsSchema = z.object({
   leaveTypeId: z.string().uuid(),
-  /** omitted → the caller's own staff profile (self-service request) */
-  staffProfileId: z.string().uuid().optional(),
+  /** omitted → the caller's own employee profile (self-service request) */
+  employeeProfileId: z.string().uuid().optional(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   /** range requests only (startDate !== endDate) — the start date is only a half day */
@@ -113,7 +113,7 @@ export const LeaveKpisSchema = z.object({
 });
 export type LeaveKpis = z.infer<typeof LeaveKpisSchema>;
 
-const StaffRefSchema = z.object({
+const EmployeeRefSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   branchName: z.string().nullable(),
@@ -130,7 +130,7 @@ const LeaveTypeRefSchema = z.object({
 
 export const LeaveRequestSummarySchema = z.object({
   id: z.string().uuid(),
-  staff: StaffRefSchema,
+  employee: EmployeeRefSchema,
   leaveType: LeaveTypeRefSchema,
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
@@ -168,7 +168,7 @@ export const LeaveRequestDetailSchema = LeaveRequestSummarySchema.extend({
 export type LeaveRequestDetail = z.infer<typeof LeaveRequestDetailSchema>;
 
 /**
- * One leave type's balance for a staff member in one year. `closingBalance`
+ * One leave type's balance for an employee in one year. `closingBalance`
  * is computed on read (opening + accrued + carriedForward - used) — never
  * stored — same convention as Gross/Net salary and payroll batch aggregates.
  */
