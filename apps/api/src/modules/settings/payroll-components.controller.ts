@@ -8,9 +8,9 @@ import { ListPayrollComponentsQueryDto, SavePayrollComponentsDto } from "./payro
 export class PayrollComponentsController {
   constructor(private readonly payrollComponents: PayrollComponentsService) {}
 
-  /** Readable by anyone who can open the Add Staff form, not just settings admins. */
+  /** Readable by anyone who can open the Add Employee form, not just settings admins. */
   @Get()
-  @Permissions("staff.view")
+  @Permissions("employee.view")
   list(@Query() query: ListPayrollComponentsQueryDto) {
     return this.payrollComponents.list(query.category);
   }
