@@ -14,9 +14,10 @@ resources below, the AWS CLI configured locally (`aws configure sso`), and Terra
    permission set with enough access to create VPC/EC2/IAM/S3/ECR/SSM/Route53 resources
    (`AdministratorAccess` is simplest for a single small account; narrow it later if you want).
 3. `aws configure sso` locally, then `aws sts get-caller-identity` to confirm it works.
-4. Confirm `me-central-1` (UAE/Dubai) is enabled for your account — it's an opt-in region for
-   older accounts. If `aws ec2 describe-regions --region me-central-1` errors, enable it in
-   the AWS Console under Account → AWS Regions first.
+4. Confirm your target region is enabled for your account — some regions (e.g. `me-central-1`)
+   are opt-in for older accounts. If `aws ec2 describe-regions --region <region>` errors,
+   enable it in the AWS Console under Account → AWS Regions first. The current deployment
+   uses `ap-south-1` (Mumbai).
 
 ## 1. Bootstrap the Terraform state bucket (chicken-and-egg step)
 
@@ -27,7 +28,7 @@ for, so this is a separate, local-state, apply-once config.
 cd infra/bootstrap
 terraform init
 terraform apply \
-  -var="region=me-central-1" \
+  -var="region=ap-south-1" \
   -var="bucket_name=keystonehr-tfstate-<pick-something-globally-unique>"
 terraform output -raw bucket_name
 ```

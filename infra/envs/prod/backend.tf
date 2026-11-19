@@ -4,9 +4,9 @@
 # resource to pay for and manage.
 terraform {
   backend "s3" {
-    bucket       = "keystonehr-tfstate-cab68cbe"
+    bucket       = "keystonehr-tfstate-65f93f"
     key          = "prod/terraform.tfstate"
-    region       = "me-central-1"
+    region       = "ap-south-1"
     use_lockfile = true
     encrypt      = true
   }

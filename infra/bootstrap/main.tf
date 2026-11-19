@@ -7,7 +7,7 @@
 #
 #   cd infra/bootstrap
 #   terraform init
-#   terraform apply -var="region=me-central-1" -var="bucket_name=keystonehr-tfstate-<something-unique>"
+#   terraform apply -var="region=ap-south-1" -var="bucket_name=keystonehr-tfstate-<something-unique>"
 #   terraform output -raw bucket_name   # paste into envs/prod/backend.tf
 
 terraform {
@@ -26,7 +26,7 @@ provider "aws" {
 
 variable "region" {
   type        = string
-  default     = "me-central-1"
+  default     = "ap-south-1"
   description = "AWS region for the state bucket. Keep in sync with envs/prod's region."
 }
 
