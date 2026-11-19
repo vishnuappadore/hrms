@@ -27,9 +27,9 @@ module "app_server" {
   ecr_api_repo_name      = "${var.project}-api"
   ecr_web_repo_name      = "${var.project}-web"
 
-  app_bucket_name       = module.platform.app_bucket_name
-  app_bucket_arn        = module.platform.app_bucket_arn
-  ssm_parameter_prefix  = module.platform.ssm_parameter_prefix
+  app_bucket_name      = module.platform.app_bucket_name
+  app_bucket_arn       = module.platform.app_bucket_arn
+  ssm_parameter_prefix = module.platform.ssm_parameter_prefix
 }
 
 module "github_oidc" {

@@ -109,11 +109,11 @@ locals {
   EOF
 
   user_data = templatefile("${path.module}/templates/user_data.sh.tpl", {
-    config_env_b64     = base64encode(local.config_env)
-    deploy_script_b64  = base64encode(file("${path.module}/../../deploy.sh"))
-    backup_script_b64  = base64encode(file("${path.module}/../../backup.sh"))
-    compose_file_b64   = base64encode(file("${path.module}/../../docker-compose.prod.yml"))
-    caddyfile_b64      = base64encode(file("${path.module}/../../Caddyfile"))
+    config_env_b64    = base64encode(local.config_env)
+    deploy_script_b64 = base64encode(file("${path.module}/../../deploy.sh"))
+    backup_script_b64 = base64encode(file("${path.module}/../../backup.sh"))
+    compose_file_b64  = base64encode(file("${path.module}/../../docker-compose.prod.yml"))
+    caddyfile_b64     = base64encode(file("${path.module}/../../Caddyfile"))
   })
 }
 
@@ -128,7 +128,7 @@ resource "aws_instance" "app_server" {
   root_block_device {
     volume_type           = "gp3"
     volume_size           = 20
-    encrypted              = true
+    encrypted             = true
     delete_on_termination = true
   }
 
