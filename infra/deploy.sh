@@ -75,6 +75,10 @@ export ECR_REGISTRY ECR_API_REPO ECR_WEB_REPO
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 export DB_PASSWORD
 export DOMAIN="${DOMAIN:-}"
+# Resolved here, not left to Caddy's own "{$VAR:default}" placeholder — docker-compose
+# always SETS the container's DOMAIN env var (just to "" when var.domain_name is empty),
+# and Caddy's placeholder default only fires on a truly-UNSET var, not a set-but-empty one.
+export SITE_ADDRESS="${DOMAIN:-:80}"
 
 log "docker compose pull"
 docker compose -f "$APP_DIR/docker-compose.prod.yml" --env-file "$APP_DIR/.env" pull \
