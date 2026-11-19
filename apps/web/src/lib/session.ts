@@ -8,9 +8,20 @@ import { cookies } from "next/headers";
 const ACCESS_COOKIE = "hr_access";
 const REFRESH_COOKIE = "hr_refresh";
 
+// COOKIE_SECURE overrides the NODE_ENV-based default — set to "false" by the infra's
+// deploy.sh only in the pre-domain/plain-HTTP tier (see infra/deploy.sh), where
+// NODE_ENV=production but there is no TLS yet and a `Secure` cookie would be silently
+// dropped by the browser. Once a real domain/TLS is configured, deploy.sh omits it and
+// this reverts to the normal production => secure default.
+function resolveSecureCookieFlag(): boolean {
+  if (process.env.COOKIE_SECURE === "false") return false;
+  if (process.env.COOKIE_SECURE === "true") return true;
+  return process.env.NODE_ENV === "production";
+}
+
 const base = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: resolveSecureCookieFlag(),
   sameSite: "lax" as const,
   path: "/",
 };

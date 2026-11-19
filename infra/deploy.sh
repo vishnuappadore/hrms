@@ -62,6 +62,11 @@ SMTP_PORT=
 MAIL_FROM=noreply@keystonehr.local
 API_URL=http://api:4000
 DOMAIN=${DOMAIN:-}
+# NODE_ENV=production above would otherwise mark session cookies Secure, which browsers
+# silently refuse to store over this tier's plain-HTTP (no DOMAIN yet). Explicit "false"
+# here only; once a real domain/TLS is configured this line is omitted entirely and
+# web/session.ts's own default (secure when NODE_ENV=production) takes back over.
+$( [ -z "${DOMAIN:-}" ] && echo "COOKIE_SECURE=false" )
 EOF
 chmod 600 "$APP_DIR/.env"
 
