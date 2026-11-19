@@ -1,0 +1,1365 @@
+{
+  "common": {
+    "appName": "هاي ريو",
+    "logout": "تسجيل الخروج",
+    "language": "اللغة",
+    "toggleTheme": "تبديل المظهر",
+    "changeBrand": "تغيير لون الواجهة",
+    "collapseSidebar": "طي القائمة الجانبية",
+    "expandSidebar": "توسيع القائمة الجانبية",
+    "actions": "إجراءات",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "savedSuccessfully": "تم الحفظ بنجاح",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "next": "التالي",
+    "search": "بحث…",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "loading": "جارٍ التحميل…",
+    "remove": "إزالة",
+    "discard": "تجاهل",
+    "deactivate": "إلغاء التفعيل",
+    "close": "إغلاق",
+    "moreActions": "المزيد من الإجراءات",
+    "yes": "نعم",
+    "no": "لا",
+    "on": "تفعيل",
+    "off": "إيقاف",
+    "loadFailed": "تعذّر تحميل البيانات. يرجى المحاولة مرة أخرى.",
+    "dialCode": "رمز الدولة",
+    "countries": {
+      "om": "عُمان",
+      "ae": "الإمارات",
+      "sa": "السعودية",
+      "qa": "قطر",
+      "kw": "الكويت",
+      "bh": "البحرين",
+      "in": "الهند",
+      "us": "الولايات المتحدة"
+    },
+    "errors": {
+      "GENERIC": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+      "VALIDATION_FAILED": "يرجى مراجعة الحقول المحددة والمحاولة مرة أخرى."
+    }
+  },
+  "table": {
+    "noResults": "لا توجد نتائج",
+    "totalRows": "الإجمالي {total}",
+    "previous": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {page} من {pages}"
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "مرحباً بعودتك. أدخل بياناتك للمتابعة.",
+    "brandTitle": "أدر كل كرسي وكل فرع — من مكان واحد.",
+    "brandSub": "لوحة إدارة Keystone HR. المواعيد ونقاط البيع والموظفون والرواتب في كل الفروع.",
+    "statBranches": "فروع",
+    "statMembers": "عضو",
+    "statRating": "متوسط التقييم",
+    "identifier": "البريد الإلكتروني أو اسم المستخدم",
+    "identifierPlaceholder": "أدخل بريدك الإلكتروني أو اسم المستخدم",
+    "password": "كلمة المرور",
+    "passwordPlaceholder": "أدخل كلمة المرور",
+    "show": "إظهار",
+    "hide": "إخفاء",
+    "forgotPassword": "هل نسيت كلمة المرور؟",
+    "signIn": "تسجيل الدخول",
+    "signingIn": "جارٍ تسجيل الدخول…",
+    "demoLabel": "دخول تجريبي",
+    "demoUse": "استخدام",
+    "needHelp": "تواجه مشكلة في الدخول؟",
+    "contactAdmin": "تواصل مع المسؤول",
+    "errors": {
+      "INVALID_CREDENTIALS": "البريد الإلكتروني/اسم المستخدم أو كلمة المرور غير صحيحة",
+      "ACCOUNT_INACTIVE": "حسابك غير نشط. يرجى التواصل مع المسؤول",
+      "NETWORK": "تعذّر الاتصال. يرجى المحاولة لاحقاً",
+      "VALIDATION_FAILED": "يرجى تعبئة جميع الحقول المطلوبة"
+    }
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "appointments": "المواعيد",
+    "pos": "نقطة البيع / الدفع",
+    "walkInQueue": "قائمة الانتظار",
+    "customers": "العملاء",
+    "loyalty": "الولاء",
+    "staff": "الموظفون",
+    "attendance": "الحضور",
+    "leave": "الإجازات",
+    "payroll": "الرواتب",
+    "inventory": "المخزون",
+    "branches": "الفروع",
+    "reports": "التقارير",
+    "roles": "الأدوار والصلاحيات",
+    "settings": "الإعدادات",
+    "sections": {
+      "operations": "العمليات",
+      "people": "الأفراد",
+      "business": "الأعمال",
+      "administration": "الإدارة"
+    }
+  },
+  "appointments": {
+    "title": "المواعيد",
+    "subtitle": "احجز المواعيد وتابعها وأدرها عبر فروعك.",
+    "newAppointment": "موعد جديد",
+    "branch": "الفرع",
+    "searchPlaceholder": "ابحث برقم الموعد أو العميل أو الخدمة…",
+    "noBranches": "لا توجد فروع متاحة.",
+    "views": {
+      "label": "العرض",
+      "calendar": "التقويم",
+      "kanban": "كانبان",
+      "list": "القائمة"
+    },
+    "calendar": {
+      "mode": "نمط التقويم",
+      "day": "يوم",
+      "week": "أسبوع",
+      "month": "شهر",
+      "today": "اليوم",
+      "previous": "السابق",
+      "next": "التالي",
+      "noneForDay": "لا توجد مواعيد في هذا اليوم.",
+      "noWorkingHours": "لم يتم تكوين ساعات العمل لهذا الفرع.",
+      "noBarbers": "لا يوجد حلاقون متاحون لهذا الفرع.",
+      "more": "+{count} أخرى"
+    },
+    "kanban": {
+      "empty": "لا توجد مواعيد"
+    },
+    "filters": {
+      "allStatuses": "كل الحالات",
+      "dateFrom": "من تاريخ",
+      "dateTo": "إلى تاريخ"
+    },
+    "status": {
+      "waiting": "قيد الانتظار",
+      "confirmed": "مؤكد",
+      "in_progress": "قيد التنفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    },
+    "list": {
+      "number": "رقم الموعد",
+      "customer": "العميل",
+      "services": "الخدمات",
+      "barber": "الحلاق",
+      "date": "التاريخ",
+      "time": "الوقت",
+      "status": "الحالة",
+      "view": "عرض",
+      "downloadInvoice": "تنزيل الفاتورة",
+      "walkIn": "زيارة مباشرة"
+    },
+    "wizard": {
+      "title": "موعد جديد",
+      "editTitle": "تعديل الموعد",
+      "steps": {
+        "services": "الخدمات",
+        "barber": "الحلاق",
+        "schedule": "التاريخ والوقت",
+        "confirm": "تأكيد"
+      },
+      "services": {
+        "heading": "اختر الخدمات",
+        "empty": "لا توجد خدمات متاحة في هذا الفرع.",
+        "minutes": "{minutes} دقيقة",
+        "total": "الإجمالي"
+      },
+      "barber": {
+        "heading": "اختر الحلاق",
+        "empty": "لا يوجد حلاقون في هذا الفرع. عيّن مستخدمًا بدور الحلاق.",
+        "available": "متاح",
+        "busy": "مشغول"
+      },
+      "schedule": {
+        "heading": "اختر التاريخ والوقت",
+        "today": "اليوم",
+        "tomorrow": "غدًا",
+        "noSlots": "لا توجد أوقات متاحة في هذا اليوم.",
+        "taken": "محجوز"
+      },
+      "confirm": {
+        "heading": "تأكيد الحجز",
+        "mobile": "رقم الجوال (اختياري)",
+        "mobilePlaceholder": "ابحث عن عميل أو أضف واحدًا…",
+        "name": "اسم العميل",
+        "namePlaceholder": "اختياري",
+        "existing": "عميل حالي",
+        "customer": "العميل",
+        "walkIn": "زيارة مباشرة (بدون عميل)",
+        "summary": "الملخص",
+        "barber": "الحلاق",
+        "when": "الموعد",
+        "total": "الإجمالي",
+        "book": "احجز الموعد",
+        "booking": "جارٍ الحجز…",
+        "save": "حفظ التغييرات",
+        "saving": "جارٍ الحفظ…"
+      },
+      "errors": {
+        "generic": "تعذّر حجز الموعد. حاول مرة أخرى.",
+        "validation": "يرجى مراجعة الاختيارات والمحاولة مرة أخرى.",
+        "notEditable": "لم يعد بالإمكان تعديل هذا الموعد.",
+        "mobileInvalid": "أدخل رقم جوال صالح"
+      }
+    },
+    "detail": {
+      "title": "الموعد {number}",
+      "customer": "العميل",
+      "walkIn": "زيارة مباشرة (بدون عميل)",
+      "barber": "الحلاق",
+      "services": "الخدمات",
+      "total": "الإجمالي",
+      "notes": "ملاحظات",
+      "history": "السجل",
+      "historyBooked": "تم الحجز",
+      "historyChangedTo": "تم تغيير الحالة إلى {status}",
+      "actions": {
+        "confirm": "تأكيد",
+        "start": "بدء الخدمة",
+        "complete": "إكمال",
+        "cancel": "إلغاء",
+        "checkout": "الدفع",
+        "downloadInvoice": "تنزيل الفاتورة",
+        "close": "إغلاق"
+      },
+      "checkoutHint": "الدفع سيتوفر مع نقطة البيع (المرحلة 4).",
+      "actionFailed": "تعذّر تحديث الموعد. حاول مرة أخرى."
+    }
+  },
+  "pos": {
+    "title": "نقطة البيع / الدفع",
+    "branch": "الفرع",
+    "noBranches": "لا توجد فروع متاحة.",
+    "tabs": {
+      "label": "الكتالوج",
+      "services": "الخدمات",
+      "products": "المنتجات"
+    },
+    "minutes": "{minutes} دقيقة",
+    "inStock": "{n} في المخزون",
+    "outOfStock": "نفد المخزون",
+    "currentSale": "البيع الحالي",
+    "emptyCart": "لا توجد عناصر بعد — أضف من الكتالوج.",
+    "customer": "العميل",
+    "walkIn": "زيارة مباشرة",
+    "searchCustomer": "ابحث بالجوال أو الاسم…",
+    "clear": "مسح",
+    "paymentSummary": "ملخص الدفع",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "total": "الإجمالي",
+    "payments": "المدفوعات",
+    "splitPayment": "تقسيم",
+    "method": "طريقة الدفع",
+    "methods": {
+      "cash": "نقدًا",
+      "card": "بطاقة",
+      "mada": "مدى",
+      "bank_transfer": "تحويل بنكي",
+      "ewallet": "محفظة إلكترونية"
+    },
+    "balanceDue": "المتبقي {amount}",
+    "overpaid": "زيادة في الدفع {amount}",
+    "charge": "تحصيل",
+    "charging": "جارٍ التحصيل…",
+    "newSale": "بيع جديد",
+    "receipt": {
+      "title": "الفاتورة {number}",
+      "printInvoice": "طباعة الفاتورة",
+      "thankYou": "شكرًا لزيارتكم!",
+      "billTo": "فاتورة إلى",
+      "reference": "المرجع",
+      "vatNumber": "ضريبة القيمة المضافة / الرقم الضريبي",
+      "crNumber": "رقم السجل التجاري"
+    },
+    "errors": {
+      "generic": "تعذّر إتمام البيع. حاول مرة أخرى.",
+      "validation": "يرجى مراجعة البيع والدفع ثم المحاولة مرة أخرى.",
+      "walkInNotServing": "تم بالفعل إتمام دفع هذا العميل أو لم يعد قيد الخدمة."
+    }
+  },
+  "walkIn": {
+    "title": "طابور الزيارات المباشرة",
+    "subtitle": "إدارة عملاء الزيارة المباشرة في الوقت الفعلي",
+    "branch": "الفرع",
+    "noBranches": "لا توجد فروع متاحة.",
+    "searchPlaceholder": "ابحث عن عملاء أو خدمات…",
+    "addWalkIn": "إضافة زيارة مباشرة",
+    "views": {
+      "label": "العرض",
+      "list": "قائمة",
+      "board": "لوحة"
+    },
+    "kpis": {
+      "inQueue": "في الطابور",
+      "servingNow": "قيد الخدمة الآن",
+      "doneToday": "منجز اليوم",
+      "avgWait": "متوسط الانتظار"
+    },
+    "filters": {
+      "allStatuses": "جميع الحالات"
+    },
+    "status": {
+      "waiting": "في الانتظار",
+      "serving": "قيد الخدمة",
+      "completed": "منجز",
+      "cancelled": "ملغى"
+    },
+    "list": {
+      "customer": "العميل",
+      "services": "الخدمات",
+      "barber": "الحلاق",
+      "wait": "الانتظار",
+      "status": "الحالة",
+      "guest": "زائر مباشر",
+      "unassigned": "غير معيّن",
+      "minutes": "{minutes} دقيقة"
+    },
+    "board": {
+      "empty": "لا توجد زيارات مباشرة"
+    },
+    "actions": {
+      "start": "بدء",
+      "cancel": "إلغاء",
+      "complete": "إنجاز",
+      "checkout": "الدفع",
+      "downloadInvoice": "تنزيل الفاتورة",
+      "view": "عرض التفاصيل"
+    },
+    "drawer": {
+      "addTitle": "إضافة عميل زيارة مباشرة",
+      "addSubtitle": "تسجيل زيارة مباشرة جديدة في طابور الانتظار.",
+      "editTitle": "تعديل الزيارة المباشرة",
+      "viewTitle": "تفاصيل الزيارة المباشرة"
+    },
+    "detail": {
+      "customer": "العميل",
+      "queuedAt": "وقت الانضمام للطابور",
+      "noServices": "لا توجد خدمات"
+    },
+    "form": {
+      "mobile": "رقم الجوال",
+      "mobilePlaceholder": "اختياري",
+      "name": "اسم العميل",
+      "namePlaceholder": "زائر مباشر",
+      "services": "الخدمات",
+      "noServices": "لا توجد خدمات متاحة في هذا الفرع.",
+      "minutes": "{minutes} دقيقة",
+      "total": "الإجمالي",
+      "barber": "الحلاق",
+      "unassigned": "غير معيّن",
+      "addWalkIn": "إضافة زيارة مباشرة",
+      "errors": {
+        "servicesRequired": "اختر خدمة واحدة على الأقل.",
+        "notEditable": "لم يعد بالإمكان تعديل هذه الزيارة المباشرة.",
+        "mobileInvalid": "أدخل رقم جوال صالح"
+      }
+    }
+  },
+  "customers": {
+    "title": "العملاء",
+    "subtitle": "إدارة قاعدة عملائك وولائهم · {count} إجمالي العملاء",
+    "addCustomer": "إضافة عميل",
+    "addTitle": "إضافة عميل جديد",
+    "editTitle": "تعديل بيانات العميل",
+    "viewTitle": "تفاصيل العميل",
+    "drawerSubtitle": "بيانات العميل",
+    "backToList": "العودة إلى العملاء",
+    "backToProfile": "العودة إلى الملف",
+    "searchPlaceholder": "ابحث بالاسم أو رقم الجوال…",
+    "comingSoon": "متاح عند إطلاق هذه الوحدة",
+    "list": {
+      "customer": "العميل",
+      "contact": "معلومات الاتصال",
+      "tier": "الفئة",
+      "visits": "الزيارات",
+      "points": "النقاط",
+      "totalSpend": "إجمالي الإنفاق",
+      "view": "عرض",
+      "newSale": "بيع جديد"
+    },
+    "filters": {
+      "allTiers": "جميع الفئات"
+    },
+    "tiers": {
+      "new": "جديد",
+      "bronze": "برونزي",
+      "silver": "فضي",
+      "gold": "ذهبي",
+      "platinum": "بلاتيني"
+    },
+    "form": {
+      "mobile": "رقم الجوال",
+      "name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "tier": "فئة الولاء",
+      "viewExisting": "عرض العميل الحالي",
+      "uploadPhoto": "رفع صورة",
+      "uploadingPhoto": "جارٍ الرفع…",
+      "photoUploadFailed": "تعذّر رفع الصورة. يرجى المحاولة مرة أخرى.",
+      "errors": {
+        "mobileExists": "يوجد عميل مسجّل بهذا الرقم بالفعل.",
+        "mobileRequired": "أدخل رقم الجوال.",
+        "mobileInvalid": "أدخل رقم جوال صالح",
+        "nameTooShort": "أدخل حرفين على الأقل.",
+        "emailExists": "يوجد عميل مسجّل بهذا البريد الإلكتروني بالفعل.",
+        "invalid": "يرجى التحقق من هذا الحقل."
+      }
+    },
+    "profile": {
+      "statistics": "الإحصائيات",
+      "visits": "الزيارات",
+      "points": "نقاط الولاء",
+      "totalSpend": "إجمالي الإنفاق",
+      "customerSince": "عميل منذ",
+      "appointmentHistory": "سجل المواعيد",
+      "noAppointments": "لا توجد مواعيد بعد.",
+      "bookAppointment": "حجز موعد",
+      "newSale": "بيع جديد"
+    }
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "subtitle": "نظرة سريعة على أعمال اليوم.",
+    "allBranches": "كل الفروع",
+    "kpis": {
+      "revenueToday": "إيرادات اليوم",
+      "revenueMonth": "إيرادات هذا الشهر",
+      "appointmentsToday": "مواعيد اليوم",
+      "activeMembers": "الأعضاء النشطون",
+      "walkIns": "زيارات بدون موعد",
+      "loyaltyRedeemed": "نقاط الولاء المستبدلة",
+      "revenueOverview": "نظرة عامة على الإيرادات",
+      "topBranches": "أفضل الفروع",
+      "salesByPayment": "المبيعات حسب طريقة الدفع",
+      "topServices": "أفضل الخدمات",
+      "lowStock": "تنبيهات انخفاض المخزون",
+      "recentAppointments": "المواعيد الأخيرة",
+      "todaysSummary": "ملخص اليوم",
+      "noData": "لا توجد بيانات بعد"
+    },
+    "todaysSummary": {
+      "walkIns": "زيارات بدون موعد",
+      "appointmentsCompleted": "المواعيد المكتملة",
+      "servicesDelivered": "الخدمات المقدَّمة",
+      "productsSold": "المنتجات المباعة",
+      "newCustomers": "عملاء جدد",
+      "loyaltyRedeemed": "نقاط الولاء المستبدلة"
+    },
+    "myPanel": {
+      "title": "لوحتي",
+      "checkedIn": "أنت مسجّل حضورك",
+      "checkedOut": "تم تسجيل الخروج",
+      "notCheckedIn": "لم تسجّل حضورك بعد",
+      "worked": "ساعات العمل",
+      "checkInAction": "تسجيل حضور",
+      "checkOutAction": "تسجيل انصراف",
+      "staleState": "البيانات لم تعد محدثة — حدّث الصفحة وحاول مرة أخرى.",
+      "noStaffProfile": "حسابك لا يملك ملف موظف لتتبع الحضور من خلاله.",
+      "sessionsToggle": "الجلسات ({count})",
+      "expandAria": "عرض سجل الجلسات",
+      "collapseAria": "إخفاء سجل الجلسات",
+      "requestLeave": "طلب إجازة"
+    }
+  },
+  "branches": {
+    "title": "الفروع",
+    "addBranch": "إضافة فرع",
+    "backToList": "العودة إلى الفروع",
+    "kpis": {
+      "revenue": "الإيرادات",
+      "total": "إجمالي الفروع",
+      "active": "الفروع النشطة",
+      "inactive": "الفروع غير النشطة",
+      "staff": "إجمالي الموظفين"
+    },
+    "views": {
+      "label": "العرض",
+      "grid": "شبكة",
+      "list": "قائمة"
+    },
+    "card": {
+      "revenueToday": "إيرادات اليوم",
+      "appointments": "المواعيد",
+      "chairs": "الكراسي",
+      "utilization": "نسبة الإشغال",
+      "rating": "التقييم",
+      "noManager": "لا يوجد مدير",
+      "viewDetails": "عرض التفاصيل"
+    },
+    "type": {
+      "corporate": "مملوك للشركة",
+      "franchise": "امتياز"
+    },
+    "list": {
+      "code": "معرّف الفرع",
+      "name": "اسم الفرع",
+      "type": "نوع الملكية",
+      "city": "المدينة",
+      "manager": "المدير",
+      "staff": "الموظفون",
+      "status": "الحالة"
+    },
+    "filters": {
+      "allTypes": "جميع الأنواع",
+      "allStatuses": "جميع الحالات"
+    },
+    "audit": {
+      "created": "أُنشئ في {date}",
+      "updated": "آخر تحديث {date}"
+    },
+    "days": {
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت",
+      "sunday": "الأحد"
+    },
+    "form": {
+      "stepDetails": "التفاصيل",
+      "stepManagerHours": "المدير وساعات العمل",
+      "stepCapacityServices": "السعة والخدمات",
+      "stepReview": "المراجعة والتأكيد",
+      "stepProgress": "الخطوة {current}/{total} · {title}",
+      "chairCount": "عدد الكراسي",
+      "servicesOffered": "الخدمات المقدمة",
+      "noActiveServices": "لا توجد خدمات نشطة بعد",
+      "reviewIntro": "يرجى مراجعة التفاصيل قبل الحفظ",
+      "basicInfo": "المعلومات الأساسية",
+      "code": "معرّف الفرع",
+      "nameEn": "اسم الفرع (بالإنجليزية)",
+      "nameAr": "اسم الفرع (بالعربية)",
+      "type": "نوع الملكية",
+      "status": "حالة الفرع",
+      "manager": "مدير الفرع",
+      "noManager": "بدون مدير",
+      "contactInfo": "معلومات التواصل",
+      "mobile": "رقم الجوال",
+      "landphone": "رقم الهاتف الثابت",
+      "email": "البريد الإلكتروني",
+      "whatsapp": "رقم واتساب",
+      "locationInfo": "معلومات الموقع",
+      "country": "الدولة",
+      "state": "المنطقة",
+      "city": "المدينة",
+      "address": "العنوان",
+      "googleMapsUrl": "رابط خرائط Google",
+      "businessInfo": "معلومات العمل",
+      "openingTime": "وقت الافتتاح",
+      "closingTime": "وقت الإغلاق",
+      "weeklyOffDays": "أيام العطلة الأسبوعية",
+      "franchiseInfo": "معلومات الامتياز",
+      "existingOwner": "مالك امتياز حالي",
+      "newOwner": "مالك امتياز جديد",
+      "franchiseOwner": "مالك الامتياز",
+      "ownerName": "اسم مالك الامتياز",
+      "companyName": "اسم الشركة",
+      "commercialRegistrationNo": "رقم السجل التجاري",
+      "taxNumber": "الرقم الضريبي",
+      "agreementStartDate": "تاريخ بدء الاتفاقية",
+      "agreementExpiryDate": "تاريخ انتهاء الاتفاقية",
+      "financialConfig": "الإعدادات المالية",
+      "currency": "العملة",
+      "tenantDefaultCurrency": "العملة الافتراضية للشركة",
+      "branchSettings": "إعدادات الفرع",
+      "allowOnlineBooking": "السماح بالحجز عبر الإنترنت",
+      "allowWalkIns": "السماح بالزيارات بدون موعد",
+      "enableLoyalty": "تفعيل برنامج الولاء",
+      "enableProductSales": "تفعيل بيع المنتجات",
+      "errors": {
+        "invalid": "قيمة غير صالحة أو مفقودة",
+        "mobileInvalid": "أدخل رقم جوال صالح"
+      }
+    }
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إعدادات عامة على مستوى المنشأة. تتوفر الأقسام تباعاً مع اكتمال وحداتها.",
+    "comingSoon": "قريباً",
+    "sections": {
+      "services": {
+        "title": "إعدادات الخدمات",
+        "description": "الفئات والخدمات والمدد والأسعار وتخصيصات الفروع"
+      },
+      "payroll": {
+        "title": "مكونات الرواتب",
+        "description": "أنواع البدلات والاستقطاعات مع معدلاتها الافتراضية"
+      },
+      "leave": {
+        "title": "إعدادات الإجازات",
+        "description": "أنواع الإجازات وسياسة الأرصدة وقواعد الموافقة"
+      },
+      "general": {
+        "title": "الإعدادات العامة",
+        "description": "اللغة الافتراضية والمنطقة الزمنية وعرض العملة وتنسيق التواريخ"
+      },
+      "company": {
+        "title": "معلومات الشركة",
+        "description": "ملف المنشأة والشعار وبيانات السجل المستخدمة في الفواتير"
+      },
+      "roles": {
+        "title": "الأدوار والصلاحيات",
+        "description": "أدوار النظام ومجموعات صلاحياتها"
+      },
+      "loyalty": {
+        "title": "إعدادات الولاء",
+        "description": "قواعد اكتساب النقاط والفئات والانتهاء ومعدلات الاستبدال"
+      },
+      "appointments": {
+        "title": "إعدادات المواعيد",
+        "description": "دقة الفترات والفواصل والتذكيرات ومعالجة عدم الحضور"
+      },
+      "taxes": {
+        "title": "الملفات الضريبية",
+        "description": "أنظمة ضريبية مسماة تُطبَّق حسب الفرع"
+      },
+      "notifications": {
+        "title": "الإشعارات",
+        "description": "القنوات والقوالب ومفاتيح التفعيل لكل حدث"
+      }
+    },
+    "companyInfo": {
+      "title": "معلومات الشركة",
+      "subtitle": "الملف التعريفي للمستأجر الظاهر في الفواتير والمستندات المطبوعة.",
+      "backToSettings": "العودة إلى الإعدادات",
+      "logoSection": "الشعار",
+      "uploadLogo": "رفع الشعار",
+      "uploadingLogo": "جارٍ الرفع…",
+      "logoUploadFailed": "تعذّر رفع الشعار. يرجى المحاولة مرة أخرى.",
+      "saveChanges": "حفظ التغييرات",
+      "generalSettingsLink": "يمكنك إدارة الإعدادات الإقليمية الافتراضية (اللغة والمنطقة الزمنية والعملة) من الإعدادات العامة",
+      "fields": {
+        "name": "اسم الشركة",
+        "contactPhone": "هاتف التواصل",
+        "contactEmail": "البريد الإلكتروني للتواصل",
+        "address": "العنوان",
+        "taxNumber": "الرقم الضريبي / ضريبة القيمة المضافة",
+        "commercialRegistrationNo": "رقم السجل التجاري"
+      }
+    },
+    "generalSettings": {
+      "title": "الإعدادات العامة",
+      "subtitle": "الإعدادات الإقليمية الافتراضية وتفضيلات العرض على مستوى المستأجر.",
+      "backToSettings": "العودة إلى الإعدادات",
+      "displaySection": "العرض",
+      "useWesternNumeralsHint": "يُبقي مبالغ الفواتير وكشوف الرواتب بالأرقام الغربية حتى باللغة العربية — إيقاف هذا الخيار يستخدم الأرقام العربية الهندية بدلاً من ذلك.",
+      "currencyLockedHint": "لا يمكن تغييرها بعد إنشاء أي فرع — الفروع ورثت بالفعل العملة الافتراضية السابقة.",
+      "saveChanges": "حفظ التغييرات",
+      "locales": {
+        "en": "الإنجليزية",
+        "ar": "العربية"
+      },
+      "fields": {
+        "defaultLocale": "اللغة الافتراضية",
+        "timezone": "المنطقة الزمنية",
+        "defaultCurrency": "العملة الافتراضية",
+        "weekStartsOn": "بداية الأسبوع",
+        "useWesternNumeralsInArabic": "الأرقام الغربية في العربية"
+      },
+      "errors": {
+        "currencyLocked": "لا يمكن تغيير العملة الافتراضية بعد إنشاء أي فرع."
+      }
+    },
+    "payrollComponents": {
+      "title": "مكونات الرواتب",
+      "subtitle": "إدارة أنواع البدلات والاستقطاعات المتاحة في إضافة موظف.",
+      "add": "+ إضافة",
+      "empty": "لا توجد أنواع بعد — أضف نوعاً للبدء.",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "defaultValue": "القيمة الافتراضية",
+      "basis": "الأساس",
+      "fixed": "ثابت",
+      "backToSettings": "العودة إلى الإعدادات",
+      "saveChanges": "حفظ التغييرات",
+      "nameExists": "يوجد مكوّن رواتب بهذا الاسم بالفعل.",
+      "allowance": {
+        "title": "أنواع البدلات",
+        "hint": "تُستخدم في الموظفون › الراتب والعمولة وإضافات الرواتب"
+      },
+      "deduction": {
+        "title": "أنواع الاستقطاعات",
+        "hint": "استقطاعات نظامية ودورية؛ تُحسب النسبة على الراتب الأساسي"
+      }
+    },
+    "leaveSettings": {
+      "title": "إعدادات الإجازات",
+      "subtitle": "إدارة أنواع الإجازات المستخدمة في طلبات الإجازة والأرصدة والرواتب.",
+      "backToSettings": "العودة إلى الإعدادات",
+      "leaveTypes": "أنواع الإجازات",
+      "hint": "تُستخدم في طلبات الإجازة والأرصدة والرواتب",
+      "add": "+ إضافة",
+      "addTitle": "إضافة نوع إجازة",
+      "editTitle": "تعديل نوع إجازة",
+      "createAction": "إنشاء نوع الإجازة",
+      "saveChanges": "حفظ التغييرات",
+      "showInactive": "إظهار غير المفعّلة",
+      "activate": "تفعيل",
+      "confirmDeactivateTitle": "إلغاء تفعيل نوع الإجازة؟",
+      "confirmActivateTitle": "تفعيل نوع الإجازة؟",
+      "confirmDeactivateBody": "لن يكون \"{name}\" متاحاً لطلبات الإجازة الجديدة. يمكنك إعادة تفعيله في أي وقت.",
+      "confirmActivateBody": "سيصبح \"{name}\" متاحاً لطلبات الإجازة الجديدة مرة أخرى.",
+      "status": "الحالة",
+      "colName": "الاسم",
+      "colEncashable": "قابلة للاستبدال",
+      "colCarryForward": "الترحيل",
+      "colSecondApproval": "موافقة ثانية",
+      "maxDaysShort": "بحد أقصى {days}",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "paid": "مدفوعة",
+      "unpaid": "غير مدفوعة",
+      "paymentType": "نوع الدفع",
+      "paymentTypeHint": "ما إذا كانت هذه الإجازة تُخصم من الراتب.",
+      "daysPerYear": "الأيام في السنة",
+      "daysPerYearHint": "الاستحقاق السنوي لهذا النوع من الإجازات.",
+      "daysPerYearSuffix": "يوم/سنة",
+      "countMode": "احتساب الأيام",
+      "countModeHint": "ما إذا كانت أيام العطلة الأسبوعية تُحتسب ضمن مدة الإجازة المطلوبة.",
+      "countModeOptions": {
+        "all_days": "كل أيام التقويم",
+        "skip_weekly_off": "باستثناء أيام العطلة الأسبوعية"
+      },
+      "sectionBasic": "المعلومات الأساسية",
+      "sectionBalance": "الرصيد والترحيل",
+      "sectionApproval": "الطلبات والموافقة",
+      "creditBalance": "توقيت إضافة الرصيد",
+      "creditBalanceHint": "متى يُضاف الاستحقاق السنوي إلى الرصيد.",
+      "creditPolicyOptions": {
+        "beginning_of_year": "بداية السنة",
+        "monthly": "شهرياً",
+        "beginning_of_month": "بداية الشهر",
+        "end_of_month": "نهاية الشهر",
+        "anniversary": "تاريخ الالتحاق"
+      },
+      "minimumNoticeDays": "الحد الأدنى للإشعار (أيام)",
+      "minimumNoticeDaysHint": "عدد الأيام التي يجب تقديم الطلب قبلها مسبقاً.",
+      "maxCarryForwardDays": "الحد الأقصى لترحيل الأيام",
+      "allowCarryForward": "السماح بالترحيل",
+      "allowCarryForwardHint": "تُرحَّل الأيام غير المستخدمة إلى السنة التالية، ضمن الحد الأقصى أدناه.",
+      "allowHalfDay": "السماح بإجازة نصف يوم",
+      "allowHalfDayHint": "يمكن للموظف طلب نصف يوم بدلاً من يوم كامل.",
+      "requireSupportingDocument": "طلب مستند داعم",
+      "requireSupportingDocumentHint": "يجب إرفاق مستند عند طلب هذا النوع من الإجازات.",
+      "allowNegativeBalance": "السماح برصيد سالب",
+      "allowNegativeBalanceHint": "يمكن للموظف طلب إجازة تتجاوز رصيده المتبقي.",
+      "isEncashable": "السماح بالاستبدال النقدي",
+      "isEncashableHint": "يمكن صرف الرصيد غير المستخدم عبر الرواتب (حساب الصرف غير مُنفَّذ بعد).",
+      "requiresSecondApproval": "طلب موافقة ثانية",
+      "requiresSecondApprovalHint": "يجب أن يوافق معتمد ثانٍ بعد موافقة الأول.",
+      "nameExists": "يوجد نوع إجازة بهذا الاسم بالفعل.",
+      "validation": {
+        "nameEnRequired": "أدخل اسماً بالإنجليزية (100 حرف كحد أقصى).",
+        "nameArRequired": "أدخل اسماً بالعربية (100 حرف كحد أقصى).",
+        "daysPerYearRange": "أدخل رقماً بين 0 و365.",
+        "minimumNoticeDaysRange": "أدخل رقماً صحيحاً بين 0 و365.",
+        "maxCarryForwardDaysRange": "أدخل رقماً صحيحاً بين 0 و365، أو فعّل الترحيل أولاً.",
+        "generic": "هذا الحقل يحتاج إلى قيمة صحيحة."
+      }
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "subtitle": "أنشئ الأدوار وأدرها، وحدد ما يمكن لكل دور القيام به.",
+      "backToSettings": "العودة إلى الإعدادات",
+      "colName": "الدور",
+      "colStaff": "الموظفون",
+      "newRole": "دور جديد",
+      "renameRole": "تعديل الدور",
+      "roleNameEn": "اسم الدور (إنجليزي)",
+      "roleNameAr": "اسم الدور (عربي)",
+      "selectAll": "تحديد الكل",
+      "clearAll": "إلغاء التحديد",
+      "fullAccess": "صلاحية كاملة",
+      "systemRole": "نظامي",
+      "customRole": "مخصص",
+      "permissionSetup": "إعداد الصلاحيات",
+      "permissionsTitle": "الصلاحيات — {name}",
+      "permissionsTitleFallback": "الصلاحيات",
+      "superAdminReadOnly": "يملك المسؤول العام صلاحية غير مقيدة على جميع الوحدات ولا يمكن تعديله.",
+      "keysSelected": "{count} صلاحية محددة",
+      "permissionsSaved": "تم حفظ الصلاحيات",
+      "roleDeleted": "تم حذف الدور",
+      "deleteTitle": "حذف {name}؟",
+      "deleteBody": "لا يمكن التراجع عن هذا الإجراء. يجب إعادة تعيين الموظفين الذين يحملون هذا الدور أولاً.",
+      "validation": {
+        "nameRequired": "أدخل اسم الدور"
+      },
+      "errors": {
+        "nameExists": "يوجد دور بهذا الاسم بالفعل",
+        "roleProtected": "لا يمكن تغيير دور المسؤول العام",
+        "roleInUse": "أعد تعيين الموظفين الذين يحملون هذا الدور قبل حذفه"
+      },
+      "modules": {
+        "dashboard": "لوحة التحكم",
+        "branches": "الفروع",
+        "customers": "العملاء",
+        "appointments": "المواعيد",
+        "pos": "نقطة البيع / الدفع",
+        "invoices": "الفواتير",
+        "services": "الخدمات",
+        "staff": "الموظفون",
+        "payroll": "الرواتب",
+        "attendance": "الحضور",
+        "leave": "الإجازات",
+        "inventory": "المخزون",
+        "procurement": "المشتريات",
+        "loyalty": "الولاء",
+        "finance": "المالية",
+        "users": "المستخدمون",
+        "roles": "الأدوار والصلاحيات",
+        "taxes": "الضرائب",
+        "settings": "الإعدادات",
+        "audit": "سجل التدقيق"
+      }
+    }
+  },
+  "services": {
+    "title": "إعدادات الخدمات",
+    "addService": "إضافة خدمة",
+    "addCategory": "فئة",
+    "backToSettings": "العودة إلى الإعدادات",
+    "backToList": "العودة إلى الخدمات",
+    "allCategories": "جميع الفئات",
+    "editCategory": "تعديل فئة {name}",
+    "filters": {
+      "allStatuses": "جميع الحالات"
+    },
+    "list": {
+      "name": "الخدمة",
+      "category": "الفئة",
+      "duration": "المدة",
+      "price": "السعر",
+      "overrides": "تخصيصات",
+      "status": "الحالة",
+      "minutes": "{minutes} دقيقة"
+    },
+    "form": {
+      "details": "تفاصيل الخدمة",
+      "category": "الفئة",
+      "status": "الحالة",
+      "nameEn": "اسم الخدمة (بالإنجليزية)",
+      "nameAr": "اسم الخدمة (بالعربية)",
+      "timeAndPrice": "الوقت والسعر",
+      "duration": "المدة (بالدقائق)",
+      "buffer": "فترة التجهيز (بالدقائق)",
+      "price": "السعر ({currency})",
+      "priceHint": "يُخزَّن كوحدات صغرى صحيحة — دون مفاجآت في التقريب.",
+      "branchAvailability": "توفر الفروع وتخصيص الأسعار",
+      "branchAvailabilityHint": "تقدَّم الخدمة في كل فرع بالسعر الأساسي ما لم تُعطَّل أو يُحدَّد سعر مخصص هنا.",
+      "availableAt": "متاحة في {branch}",
+      "overridePrice": "سعر مخصص",
+      "basePrice": "السعر الأساسي",
+      "errors": {
+        "invalid": "قيمة غير صالحة أو مفقودة",
+        "badOverride": "أحد الأسعار المخصصة ليس مبلغاً صالحاً"
+      }
+    },
+    "categoryDialog": {
+      "titleNew": "فئة جديدة",
+      "titleEdit": "تعديل الفئة",
+      "nameEn": "الاسم (بالإنجليزية)",
+      "nameAr": "الاسم (بالعربية)",
+      "bothNamesRequired": "كلا الاسمين مطلوبان",
+      "nameExists": "توجد فئة بهذا الاسم بالفعل"
+    }
+  },
+  "staff": {
+    "title": "الموظفون",
+    "subtitle": "إدارة حسابات الموظفين والأدوار وتعيينات الفروع",
+    "addUser": "إضافة موظف",
+    "backToList": "العودة إلى الموظفين",
+    "audit": {
+      "created": "أُنشئ في {date}",
+      "updated": "آخر تحديث {date}"
+    },
+    "list": {
+      "name": "الاسم",
+      "username": "اسم المستخدم",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "branches": "الفروع",
+      "allBranches": "جميع الفروع",
+      "branchCount": "{count} فرع",
+      "status": "الحالة",
+      "lastLogin": "آخر تسجيل دخول"
+    },
+    "filters": {
+      "allRoles": "جميع الأدوار",
+      "allBranches": "جميع الفروع",
+      "allStatuses": "جميع الحالات"
+    },
+    "form": {
+      "stepBasicProfile": "الملف الأساسي",
+      "stepEmployment": "التوظيف",
+      "stepSalaryCommission": "الراتب والعمولة",
+      "stepSystemAccess": "صلاحية النظام",
+      "stepProgress": "الخطوة {current}/{total} · {title}",
+      "accountInfo": "معلومات الحساب",
+      "name": "اسم الموظف",
+      "username": "اسم المستخدم",
+      "email": "البريد الإلكتروني",
+      "language": "اللغة المفضلة",
+      "mobile": "رقم الجوال",
+      "gender": "الجنس",
+      "genderMale": "ذكر",
+      "genderFemale": "أنثى",
+      "staffStatus": "الحالة",
+      "staffStatusActive": "نشط",
+      "staffStatusOnLeave": "في إجازة",
+      "staffStatusInactive": "غير نشط",
+      "primaryBranch": "الفرع الرئيسي",
+      "primaryBranchLocked": "الفرع الرئيسي",
+      "employmentType": "نوع التوظيف",
+      "employmentTypeFullTime": "دوام كامل",
+      "employmentTypePartTime": "دوام جزئي",
+      "employmentTypeContract": "بعقد",
+      "joiningDate": "تاريخ الالتحاق",
+      "reportingManager": "المدير المباشر",
+      "reportingManagerPlaceholder": "البحث عن موظف…",
+      "noReportingManager": "بدون مدير مباشر",
+      "baseSalary": "الراتب الأساسي ({currency})",
+      "commissionRate": "معدل العمولة",
+      "commissionEnabledLabel": "مفعّل",
+      "commissionRatePct": "معدل العمولة (%)",
+      "allowances": "البدلات",
+      "deductions": "الاستقطاعات النظامية",
+      "addAllowance": "+ بدلات",
+      "addDeduction": "+ استقطاع",
+      "noAllowances": "لم تُضف بدلات بعد.",
+      "noDeductions": "لم تُضف استقطاعات بعد.",
+      "selectComponent": "اختر النوع",
+      "amount": "المبلغ",
+      "grossSalary": "الإجمالي (الراتب الأساسي + البدلات)",
+      "totalDeductions": "الاستقطاعات النظامية",
+      "netSalary": "صافي الراتب الشهري",
+      "access": "الدور وصلاحية الفروع",
+      "role": "دور المستخدم",
+      "status": "الحالة",
+      "accountStatusHint": "صلاحية تسجيل الدخول — تختلف عن حالة الموظف في الملف الأساسي.",
+      "allBranches": "صلاحية جميع الفروع",
+      "allBranchesHint": "يرى جميع الفروع دون تعيينات محددة (مثل المدير العام)",
+      "branches": "الفروع المعيّنة",
+      "noBranches": "لا توجد فروع بعد — أنشئ فرعاً أولاً.",
+      "credentials": "بيانات تسجيل الدخول",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "passwordHint": "8 أحرف على الأقل، مع حرف ورقم.",
+      "addStaff": "إضافة موظف",
+      "errors": {
+        "invalid": "قيمة غير صالحة أو مفقودة",
+        "nameRequired": "أدخل اسم الموظف الكامل",
+        "usernameInvalid": "من ٣ إلى ٥٠ حرفاً: أحرف وأرقام إنجليزية أو نقطة أو شرطة سفلية أو شرطة فقط",
+        "mobileInvalid": "أدخل رقم جوال صالح",
+        "emailInvalid": "أدخل بريداً إلكترونياً صالحاً",
+        "primaryBranchRequired": "اختر الفرع الرئيسي",
+        "roleRequired": "اختر دور المستخدم",
+        "employmentTypeRequired": "اختر نوع التوظيف",
+        "baseSalaryInvalid": "أدخل مبلغاً صالحاً للراتب",
+        "passwordPolicy": "8 أحرف على الأقل، مع حرف ورقم",
+        "passwordMismatch": "كلمتا المرور غير متطابقتين",
+        "branchRequired": "عيّن فرعاً واحداً على الأقل أو امنح صلاحية جميع الفروع",
+        "usernameExists": "يوجد مستخدم بهذا الاسم بالفعل",
+        "emailExists": "يوجد مستخدم بهذا البريد الإلكتروني بالفعل",
+        "cannotModifySelf": "لا يمكنك تغيير حالتك أو دورك",
+        "reportingManagerSelf": "لا يمكن أن يكون الموظف مديره المباشر",
+        "commissionRateRequired": "مطلوب عند تفعيل العمولة",
+        "fixHighlighted": "يرجى تصحيح الحقول المظللة قبل الحفظ"
+      }
+    },
+    "resetPassword": {
+      "title": "إعادة تعيين كلمة المرور — {name}",
+      "action": "إعادة تعيين كلمة المرور",
+      "hint": "عيّن كلمة مرور جديدة لهذا المستخدم. سيتم تسجيل خروجه من جميع الجلسات النشطة.",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "policyError": "8 أحرف على الأقل، مع حرف ورقم",
+      "mismatchError": "كلمتا المرور غير متطابقتين"
+    }
+  },
+  "attendance": {
+    "title": "الحضور",
+    "subtitleToday": "الحضور المباشر ليوم {date}",
+    "subtitleMonthly": "إجماليات الشهر {month}",
+    "scopeLabel": "العرض",
+    "scopeToday": "اليوم",
+    "scopeMonthly": "شهري",
+    "allBranches": "كل الفروع",
+    "status": {
+      "present": "حاضر",
+      "late": "متأخر",
+      "on_leave": "في إجازة",
+      "absent": "غائب",
+      "weekly_off": "عطلة أسبوعية",
+      "pending": "لم يحضر بعد",
+      "holiday": "عطلة رسمية"
+    },
+    "table": {
+      "staff": "الموظف",
+      "status": "الحالة",
+      "checkIn": "تسجيل الدخول",
+      "checkOut": "تسجيل الخروج",
+      "hours": "الساعات",
+      "viewLog": "عرض سجل الحضور والانصراف",
+      "present": "حاضر",
+      "late": "متأخر",
+      "leave": "إجازة",
+      "absent": "غائب",
+      "totalHours": "إجمالي الساعات",
+      "rate": "النسبة",
+      "viewMonthly": "عرض التفاصيل الشهرية"
+    },
+    "kpis": {
+      "presentToday": "الحاضرون اليوم",
+      "presentDays": "أيام الحضور",
+      "late": "متأخر",
+      "lateArrivals": "حالات التأخير",
+      "onLeave": "في إجازة",
+      "leaveDays": "أيام الإجازة",
+      "absent": "غائب",
+      "absentDays": "أيام الغياب",
+      "rate": "نسبة الحضور"
+    },
+    "sessionDialog": {
+      "title": "{name} · سجل الحضور والانصراف",
+      "titleFallback": "سجل الحضور والانصراف",
+      "sessions": "الجلسات",
+      "firstIn": "أول دخول",
+      "lastOut": "آخر خروج",
+      "totalWorked": "إجمالي ساعات العمل",
+      "checkIn": "تسجيل الدخول",
+      "checkOut": "تسجيل الخروج",
+      "duration": "المدة",
+      "breakTime": "وقت الاستراحة",
+      "noSessions": "لا توجد جلسات مسجلة لهذا اليوم.",
+      "addSession": "إضافة جلسة",
+      "removeSession": "حذف الجلسة",
+      "breakTotal": "وقت الاستراحة · {minutes}",
+      "validation": {
+        "checkInRequired": "وقت تسجيل الدخول مطلوب",
+        "checkoutBeforeCheckin": "يجب أن يكون تسجيل الخروج بعد تسجيل الدخول",
+        "openMustBeLast": "يمكن ترك الجلسة الأخيرة فقط مفتوحة",
+        "overlap": "يجب ألا تتداخل الجلسات في نفس اليوم",
+        "futureCheckIn": "لا يمكن أن يكون تسجيل الدخول في المستقبل",
+        "futureCheckOut": "لا يمكن أن يكون تسجيل الخروج في المستقبل",
+        "tooManySessions": "عدد كبير جداً من الجلسات في يوم واحد — احذف بعضها قبل الحفظ",
+        "generic": "يرجى التحقق من هذا الحقل"
+      }
+    },
+    "monthlyDetail": {
+      "title": "{name} · {month}",
+      "present": "حاضر",
+      "late": "متأخر",
+      "leave": "إجازة",
+      "absent": "غائب",
+      "totalHours": "إجمالي الساعات",
+      "rate": "النسبة",
+      "date": "التاريخ",
+      "day": "اليوم",
+      "status": "الحالة",
+      "checkIn": "تسجيل الدخول",
+      "checkOut": "تسجيل الخروج",
+      "hours": "الساعات",
+      "viewLog": "عرض سجل الجلسة",
+      "statusLabel": {
+        "present": "حاضر",
+        "late": "متأخر",
+        "on_leave": "في إجازة",
+        "absent": "غائب",
+        "weekly_off": "عطلة أسبوعية",
+        "pending": "لم يحضر بعد",
+        "holiday": "عطلة رسمية"
+      }
+    }
+  },
+  "leave": {
+    "title": "الإجازات",
+    "subtitle": "مراجعة طلبات إجازات الموظفين واعتمادها",
+    "newRequest": "طلب جديد",
+    "allBranches": "كل الفروع",
+    "allTypes": "كل الأنواع",
+    "kpis": {
+      "pending": "قيد الانتظار",
+      "approvedThisMonth": "معتمدة هذا الشهر",
+      "onLeaveToday": "في إجازة اليوم",
+      "rejected": "مرفوضة"
+    },
+    "tabs": {
+      "all": "الكل",
+      "pending": "قيد الانتظار",
+      "approved": "معتمدة",
+      "rejected": "مرفوضة",
+      "cancelled": "ملغاة"
+    },
+    "table": {
+      "staff": "الموظف",
+      "type": "النوع",
+      "period": "الفترة",
+      "days": "الأيام",
+      "reason": "السبب",
+      "status": "الحالة",
+      "requested": "تاريخ الطلب"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "pendingSecondApproval": "قيد الانتظار · الموافقة الثانية",
+      "approved": "معتمدة",
+      "rejected": "مرفوضة",
+      "cancelled": "ملغاة"
+    },
+    "actions": {
+      "view": "عرض",
+      "approve": "اعتماد",
+      "reject": "رفض",
+      "cancel": "إلغاء"
+    },
+    "errors": {
+      "insufficientBalance": "لا يملك هذا الموظف رصيد إجازات كافٍ لاعتماد هذا الطلب."
+    },
+    "toast": {
+      "requestSubmitted": "تم إرسال طلب الإجازة",
+      "approved": "تم اعتماد طلب الإجازة",
+      "rejected": "تم رفض طلب الإجازة",
+      "cancelled": "تم إلغاء الإجازة",
+      "withdrawn": "تم سحب طلب الإجازة"
+    },
+    "requestDialog": {
+      "title": "طلب إجازة",
+      "onBehalfOf": "نيابة عن",
+      "myself": "نفسي",
+      "leaveType": "نوع الإجازة",
+      "selectType": "اختر نوع الإجازة",
+      "daysRemaining": "{count} يوم متبقٍ",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "halfDay": "نصف يوم",
+      "halfDayPeriod": "أي نصف",
+      "firstHalf": "النصف الأول",
+      "secondHalf": "النصف الثاني",
+      "startHalfDay": "تاريخ البدء نصف يوم",
+      "endHalfDay": "تاريخ الانتهاء نصف يوم",
+      "reason": "السبب",
+      "attachment": "المستند الداعم",
+      "chooseFile": "اختر ملفاً",
+      "attachmentHint": "ارفع مستنداً داعماً (مثل شهادة طبية).",
+      "attachmentUploadFailed": "تعذر رفع الملف. حاول مرة أخرى.",
+      "submit": "إرسال الطلب",
+      "validation": {
+        "leaveTypeRequired": "اختر نوع الإجازة",
+        "startDateRequired": "تاريخ البدء مطلوب",
+        "reasonRequired": "السبب مطلوب",
+        "endDateBeforeStart": "يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء أو يساويه",
+        "halfDayShapeInvalid": "تحقق من اختيار نصف اليوم لهذا النطاق الزمني",
+        "minimumNoticeNotMet": "يتطلب نوع الإجازة هذا إشعاراً مسبقاً أطول",
+        "halfDayNotAllowed": "لا يسمح نوع الإجازة هذا بطلبات نصف اليوم",
+        "supportingDocumentRequired": "يتطلب نوع الإجازة هذا مستنداً داعماً",
+        "insufficientBalance": "رصيد الإجازات غير كافٍ لهذا الطلب",
+        "dateConflict": "يوجد طلب إجازة بالفعل لتاريخ واحد أو أكثر من هذه التواريخ",
+        "generic": "يرجى التحقق من هذا الحقل"
+      }
+    },
+    "approveDialog": {
+      "title": "اعتماد طلب {name}",
+      "body": "سيؤدي هذا إلى اعتماد الطلب وخصم عدد الأيام من رصيد إجازات الموظف.",
+      "confirm": "اعتماد الطلب"
+    },
+    "rejectDialog": {
+      "title": "رفض طلب {name}",
+      "reason": "سبب الرفض",
+      "reasonRequired": "سبب الرفض مطلوب",
+      "alreadyResolved": "تم حسم هذا الطلب بالفعل",
+      "confirm": "رفض الطلب"
+    },
+    "cancelDialog": {
+      "title": "إلغاء إجازة {name}",
+      "body": "سيؤدي هذا إلى عكس خصم رصيد الإجازة وإزالة تمييز \"في إجازة\" من الحضور لهذه الفترة.",
+      "reason": "سبب الإلغاء",
+      "reasonRequired": "سبب الإلغاء مطلوب",
+      "notApproved": "يمكن إلغاء الطلبات المعتمدة فقط",
+      "confirm": "إلغاء الإجازة"
+    },
+    "detailDialog": {
+      "title": "طلب إجازة {name}",
+      "titleFallback": "طلب إجازة",
+      "type": "النوع",
+      "period": "الفترة",
+      "firstHalf": "النصف الأول",
+      "secondHalf": "النصف الثاني",
+      "halfDayShort": "نصف يوم",
+      "days": "الأيام",
+      "reason": "السبب",
+      "viewAttachment": "عرض المرفق",
+      "historyTitle": "السجل",
+      "unknownActor": "النظام",
+      "history": {
+        "applied": "تم التقديم بواسطة {name}",
+        "firstApproved": "الموافقة الأولى بواسطة {name}",
+        "approved": "تم الاعتماد بواسطة {name}",
+        "rejected": "تم الرفض بواسطة {name}",
+        "cancelled": "تم الإلغاء بواسطة {name}"
+      }
+    },
+    "withdrawDialog": {
+      "title": "إلغاء طلب الإجازة هذا؟",
+      "body": "سيؤدي هذا إلى سحب طلبك قبل البت فيه. يمكنك تقديم طلب جديد في أي وقت.",
+      "confirm": "إلغاء الطلب"
+    },
+    "myLeave": {
+      "title": "إجازاتي",
+      "subtitle": "رصيد إجازاتك وطلباتك الخاصة",
+      "newRequest": "طلب جديد",
+      "balanceTitle": "رصيد الإجازات",
+      "noBalances": "لم يتم إعداد أنواع إجازات بعد.",
+      "total": "الإجمالي",
+      "credited": "المستحق",
+      "carriedForward": "المرحّل",
+      "used": "المستخدم",
+      "remaining": "المتبقي",
+      "appliedLeaves": "الإجازات المقدَّمة"
+    }
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "openLabel": "فتح ملفي الشخصي",
+    "tabs": {
+      "profile": "الملف الشخصي",
+      "salary": "الراتب",
+      "leave": "الإجازات",
+      "attendance": "الحضور",
+      "notifications": "الإشعارات",
+      "contactHq": "التواصل مع المقر"
+    },
+    "comingSoon": "{tab} غير متاح بعد."
+  },
+  "payroll": {
+    "title": "الرواتب",
+    "subtitle": "إنشاء الرواتب الشهرية ومراجعتها واعتمادها",
+    "branch": "الفرع",
+    "month": "شهر الراتب",
+    "generatePayroll": "إنشاء الرواتب",
+    "generateConfirm": {
+      "title": "إنشاء الرواتب",
+      "branch": "الفرع",
+      "period": "فترة الراتب",
+      "newEmployees": "الموظفون الجدد",
+      "totalEmployees": "إجمالي الموظفين",
+      "existingStatus": "توزيع الحالة الحالية",
+      "confirm": "تأكيد وإنشاء"
+    },
+    "notGenerated": {
+      "title": "لا يوجد تشغيل رواتب بعد",
+      "body": "اختر فرعًا وشهرًا، ثم أنشئ الرواتب للبدء."
+    },
+    "noEligibleStaff": {
+      "title": "لا يوجد موظفون مؤهلون",
+      "body": "لا يوجد في هذا الفرع موظفون مؤهلون لصرف الرواتب في الشهر المحدد."
+    },
+    "paidDaysShort": "{paid}/{total} يوم",
+    "tabs": {
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض"
+    },
+    "views": {
+      "label": "العرض",
+      "batch": "دفعات",
+      "list": "قائمة"
+    },
+    "columns": {
+      "staff": "الموظف",
+      "base": "الأساسي",
+      "allowances": "البدلات",
+      "deductions": "الاستقطاعات",
+      "net": "صافي الراتب",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "paid": "مدفوع"
+    },
+    "totals": "الإجمالي",
+    "empty": "لا توجد سجلات رواتب في هذا القسم.",
+    "batchEmpty": "لا توجد دفعات بعد.",
+    "batchLabel": "الدفعة {no}",
+    "batchStaffCount": "{count} موظف",
+    "actionsLabel": {
+      "viewPayslip": "عرض قسيمة الراتب",
+      "approve": "اعتماد",
+      "reject": "رفض",
+      "markPaid": "تحديد كمدفوع",
+      "revert": "إرجاع إلى قيد الانتظار",
+      "recompute": "إعادة الحساب"
+    },
+    "bulk": {
+      "selected": "{count} محدد",
+      "selectedAll": "{count} محدد (كل المطابق)",
+      "selectAllMatching": "تحديد كل {count} عنصر مطابق",
+      "clearSelection": "إلغاء التحديد",
+      "recomputeSelected": "إعادة حساب المحدد",
+      "approveSelected": "اعتماد المحدد",
+      "rejectSelected": "رفض المحدد",
+      "markPaidSelected": "تحديد المحدد كمدفوع",
+      "revertSelected": "إرجاع المحدد"
+    },
+    "errors": {
+      "PAYROLL_ITEM_LOCKED": "تم دفع هذا السجل بالفعل ولا يمكن تعديله بعد الآن.",
+      "PAYROLL_INVALID_TRANSITION": "هذا الإجراء غير صالح لحالة السجل الحالية.",
+      "PAYROLL_ITEM_NOT_PENDING": "يمكن اعتماد السجلات قيد الانتظار فقط.",
+      "PAYROLL_NO_ELIGIBLE_STAFF": "لا يوجد في هذا الفرع موظفون مؤهلون لصرف الرواتب.",
+      "GENERIC": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+    },
+    "confirm": {
+      "approveTitle": "اعتماد الرواتب",
+      "approveBody": "سيتم اعتماد سجلات الرواتب المحددة ونقلها إلى قسم المعتمد.",
+      "rejectTitle": "رفض الرواتب",
+      "rejectBody": "سيتم رفض سجلات الرواتب المحددة. يمكن تصحيحها وإعادة تقديمها لاحقًا.",
+      "staffCount": "عدد الموظفين",
+      "amount": "المبلغ الإجمالي",
+      "period": "الفترة",
+      "confirmApprove": "اعتماد",
+      "confirmReject": "رفض",
+      "reasonLabel": "السبب (اختياري)"
+    },
+    "slip": {
+      "title": "قسيمة الراتب — {name}",
+      "doj": "تاريخ الالتحاق",
+      "payDate": "تاريخ الدفع",
+      "notPaid": "لم يُدفع بعد",
+      "earnings": "الإيرادات",
+      "baseSalary": "الراتب الأساسي",
+      "paidDays": "مدفوع عن {paid} من {total} يوم",
+      "allowances": "إجمالي البدلات",
+      "allowanceBreakdown": "تفاصيل البدلات",
+      "additions": "إيرادات إضافية",
+      "addAddition": "إضافة إيراد",
+      "gross": "إجمالي الراتب",
+      "deductions": "الاستقطاعات",
+      "statutory": "الاستقطاعات القانونية",
+      "statutoryBreakdown": "تفاصيل الاستقطاعات القانونية",
+      "other": "استقطاع آخر",
+      "absenceDeduction": "استقطاع الغياب",
+      "absentDaysNote": "تم خصم {days} يوم غياب",
+      "leaveDeduction": "استقطاع الإجازة",
+      "unpaidDaysNote": "تم خصم {days} يوم غير مدفوع",
+      "extraDeductions": "استقطاعات إضافية",
+      "addDeduction": "إضافة استقطاع",
+      "totalDeductions": "إجمالي الاستقطاعات",
+      "netPay": "صافي الراتب",
+      "downloadPdf": "تحميل PDF",
+      "rejectionReason": "سبب الرفض",
+      "labelPlaceholder": "مثال: عمل إضافي",
+      "amountPlaceholder": "0.000"
+    }
+  }
+}

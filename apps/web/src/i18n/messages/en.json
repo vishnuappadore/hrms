@@ -1,0 +1,1365 @@
+{
+  "common": {
+    "appName": "Keystone HR",
+    "logout": "Log out",
+    "language": "Language",
+    "toggleTheme": "Toggle theme",
+    "changeBrand": "Change accent color",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "actions": "Actions",
+    "edit": "Edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "savedSuccessfully": "Saved Successfully",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search…",
+    "active": "Active",
+    "inactive": "Inactive",
+    "loading": "Loading…",
+    "remove": "Remove",
+    "discard": "Discard",
+    "deactivate": "Deactivate",
+    "close": "Close",
+    "moreActions": "More actions",
+    "yes": "Yes",
+    "no": "No",
+    "on": "On",
+    "off": "Off",
+    "loadFailed": "Failed to load data. Please try again.",
+    "dialCode": "Country code",
+    "countries": {
+      "om": "Oman",
+      "ae": "UAE",
+      "sa": "Saudi Arabia",
+      "qa": "Qatar",
+      "kw": "Kuwait",
+      "bh": "Bahrain",
+      "in": "India",
+      "us": "United States"
+    },
+    "errors": {
+      "GENERIC": "Something went wrong. Please try again.",
+      "VALIDATION_FAILED": "Please check the highlighted fields and try again."
+    }
+  },
+  "table": {
+    "noResults": "No results found",
+    "totalRows": "{total} total",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {pages}"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Welcome back. Enter your credentials to continue.",
+    "brandTitle": "Run every chair, every branch — from one place.",
+    "brandSub": "The management console for Keystone HR. Appointments, point of sale, staff and payroll across all your locations.",
+    "statBranches": "Branches",
+    "statMembers": "Members",
+    "statRating": "Avg rating",
+    "identifier": "Email or Username",
+    "identifierPlaceholder": "Enter your email or username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "show": "Show",
+    "hide": "Hide",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "demoLabel": "Demo login",
+    "demoUse": "Use",
+    "needHelp": "Trouble signing in?",
+    "contactAdmin": "Contact your administrator",
+    "errors": {
+      "INVALID_CREDENTIALS": "Invalid email/username or password",
+      "ACCOUNT_INACTIVE": "Your account is inactive. Please contact administrator",
+      "NETWORK": "Unable to connect. Please try again later",
+      "VALIDATION_FAILED": "Please fill in all required fields"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "appointments": "Appointments",
+    "pos": "POS / Checkout",
+    "walkInQueue": "Walk-in Queue",
+    "customers": "Customers",
+    "loyalty": "Loyalty",
+    "staff": "Staff",
+    "attendance": "Attendance",
+    "leave": "Leave",
+    "payroll": "Payroll",
+    "inventory": "Inventory",
+    "branches": "Branches",
+    "reports": "Reports",
+    "roles": "Roles & Permissions",
+    "settings": "Settings",
+    "sections": {
+      "operations": "Operations",
+      "people": "People",
+      "business": "Business",
+      "administration": "Administration"
+    }
+  },
+  "appointments": {
+    "title": "Appointments",
+    "subtitle": "Book, track, and manage appointments across your branches.",
+    "newAppointment": "New Appointment",
+    "branch": "Branch",
+    "searchPlaceholder": "Search number, customer, service…",
+    "noBranches": "No branches available.",
+    "views": {
+      "label": "View",
+      "calendar": "Calendar",
+      "kanban": "Kanban",
+      "list": "List"
+    },
+    "calendar": {
+      "mode": "Calendar mode",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "today": "Today",
+      "previous": "Previous",
+      "next": "Next",
+      "noneForDay": "No appointments on this day.",
+      "noWorkingHours": "No working hours configured for this branch.",
+      "noBarbers": "No barbers available for this branch.",
+      "more": "+{count} more"
+    },
+    "kanban": {
+      "empty": "No appointments"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "dateFrom": "From date",
+      "dateTo": "To date"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "confirmed": "Confirmed",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "list": {
+      "number": "Appointment No.",
+      "customer": "Customer",
+      "services": "Services",
+      "barber": "Barber",
+      "date": "Date",
+      "time": "Time",
+      "status": "Status",
+      "view": "View",
+      "downloadInvoice": "Download Invoice",
+      "walkIn": "Walk-in"
+    },
+    "wizard": {
+      "title": "New Appointment",
+      "editTitle": "Edit Appointment",
+      "steps": {
+        "services": "Services",
+        "barber": "Barber",
+        "schedule": "Date & Time",
+        "confirm": "Confirm"
+      },
+      "services": {
+        "heading": "Select services",
+        "empty": "No services available at this branch.",
+        "minutes": "{minutes} min",
+        "total": "Total"
+      },
+      "barber": {
+        "heading": "Select barber",
+        "empty": "No barbers assigned to this branch. Assign a user with the Barber role.",
+        "available": "Available",
+        "busy": "Busy"
+      },
+      "schedule": {
+        "heading": "Pick date & time",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "noSlots": "No available slots for this day.",
+        "taken": "Booked"
+      },
+      "confirm": {
+        "heading": "Confirm booking",
+        "mobile": "Mobile Number (Optional)",
+        "mobilePlaceholder": "Search or add a customer…",
+        "name": "Customer Name",
+        "namePlaceholder": "Optional",
+        "existing": "Existing customer",
+        "customer": "Customer",
+        "walkIn": "Walk-in (no customer)",
+        "summary": "Summary",
+        "barber": "Barber",
+        "when": "When",
+        "total": "Total",
+        "book": "Book Appointment",
+        "booking": "Booking…",
+        "save": "Save Changes",
+        "saving": "Saving…"
+      },
+      "errors": {
+        "generic": "Could not book the appointment. Please try again.",
+        "validation": "Please review the selections and try again.",
+        "notEditable": "This appointment can no longer be edited.",
+        "mobileInvalid": "Enter a valid mobile number"
+      }
+    },
+    "detail": {
+      "title": "Appointment {number}",
+      "customer": "Customer",
+      "walkIn": "Walk-in (no customer)",
+      "barber": "Barber",
+      "services": "Services",
+      "total": "Total",
+      "notes": "Notes",
+      "history": "History",
+      "historyBooked": "Booked",
+      "historyChangedTo": "Status changed to {status}",
+      "actions": {
+        "confirm": "Confirm",
+        "start": "Start Service",
+        "complete": "Complete",
+        "cancel": "Cancel",
+        "checkout": "Checkout",
+        "downloadInvoice": "Download Invoice",
+        "close": "Close"
+      },
+      "checkoutHint": "Checkout opens with POS (Phase 4).",
+      "actionFailed": "Could not update the appointment. Please try again."
+    }
+  },
+  "pos": {
+    "title": "POS / Checkout",
+    "branch": "Branch",
+    "noBranches": "No branches available.",
+    "tabs": {
+      "label": "Catalogue",
+      "services": "Services",
+      "products": "Products"
+    },
+    "minutes": "{minutes} min",
+    "inStock": "{n} in stock",
+    "outOfStock": "Out of stock",
+    "currentSale": "Current Sale",
+    "emptyCart": "No items yet — add from the catalogue.",
+    "customer": "Customer",
+    "walkIn": "Walk-in",
+    "searchCustomer": "Search mobile or name…",
+    "clear": "Clear",
+    "paymentSummary": "Payment Summary",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "payments": "Payments",
+    "splitPayment": "Split",
+    "method": "Payment method",
+    "methods": {
+      "cash": "Cash",
+      "card": "Card",
+      "mada": "Mada",
+      "bank_transfer": "Bank Transfer",
+      "ewallet": "eWallet"
+    },
+    "balanceDue": "Balance due {amount}",
+    "overpaid": "Overpaid by {amount}",
+    "charge": "Charge",
+    "charging": "Charging…",
+    "newSale": "New Sale",
+    "receipt": {
+      "title": "Invoice {number}",
+      "printInvoice": "Print Invoice",
+      "thankYou": "Thank you for your visit!",
+      "billTo": "Bill To",
+      "reference": "Ref",
+      "vatNumber": "VAT / Tax Number",
+      "crNumber": "Commercial Registration No."
+    },
+    "errors": {
+      "generic": "Could not complete the sale. Please try again.",
+      "validation": "Please review the sale and payment, then try again.",
+      "walkInNotServing": "This walk-in has already been checked out or is no longer being served."
+    }
+  },
+  "walkIn": {
+    "title": "Walk-in Queue",
+    "subtitle": "Manage walk-in customers in real time",
+    "branch": "Branch",
+    "noBranches": "No branches available.",
+    "searchPlaceholder": "Search customers, services…",
+    "addWalkIn": "Add Walk-in",
+    "views": {
+      "label": "View",
+      "list": "List",
+      "board": "Board"
+    },
+    "kpis": {
+      "inQueue": "In Queue",
+      "servingNow": "Serving Now",
+      "doneToday": "Done Today",
+      "avgWait": "Avg Wait"
+    },
+    "filters": {
+      "allStatuses": "All statuses"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "serving": "Serving",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "list": {
+      "customer": "Customer",
+      "services": "Services",
+      "barber": "Barber",
+      "wait": "Wait",
+      "status": "Status",
+      "guest": "Walk-in Guest",
+      "unassigned": "Unassigned",
+      "minutes": "{minutes} min"
+    },
+    "board": {
+      "empty": "No walk-ins"
+    },
+    "actions": {
+      "start": "Start",
+      "cancel": "Cancel",
+      "complete": "Complete",
+      "checkout": "Checkout",
+      "downloadInvoice": "Download Invoice",
+      "view": "View details"
+    },
+    "drawer": {
+      "addTitle": "Add Walk-in Customer",
+      "addSubtitle": "Registers a new walk-in into the waiting queue.",
+      "editTitle": "Edit Walk-in",
+      "viewTitle": "Walk-in Details"
+    },
+    "detail": {
+      "customer": "Customer",
+      "queuedAt": "Queued at",
+      "noServices": "No services"
+    },
+    "form": {
+      "mobile": "Mobile Number",
+      "mobilePlaceholder": "Optional",
+      "name": "Customer Name",
+      "namePlaceholder": "Walk-in Guest",
+      "services": "Services",
+      "noServices": "No services available at this branch.",
+      "minutes": "{minutes} min",
+      "total": "Total",
+      "barber": "Barber",
+      "unassigned": "Unassigned",
+      "addWalkIn": "Add Walk-in",
+      "errors": {
+        "servicesRequired": "Select at least one service.",
+        "notEditable": "This walk-in can no longer be edited.",
+        "mobileInvalid": "Enter a valid mobile number"
+      }
+    }
+  },
+  "customers": {
+    "title": "Customers",
+    "subtitle": "Manage your customer base & loyalty · {count} Total Customers",
+    "addCustomer": "Add Customer",
+    "addTitle": "Add New Customer",
+    "editTitle": "Edit Customer",
+    "viewTitle": "Customer Details",
+    "drawerSubtitle": "Customer details",
+    "backToList": "Back to customers",
+    "backToProfile": "Back to profile",
+    "searchPlaceholder": "Search name or mobile…",
+    "comingSoon": "Available once this module ships",
+    "list": {
+      "customer": "Customer",
+      "contact": "Contact",
+      "tier": "Tier",
+      "visits": "Visits",
+      "points": "Points",
+      "totalSpend": "Total Spend",
+      "view": "View",
+      "newSale": "New Sale"
+    },
+    "filters": {
+      "allTiers": "All tiers"
+    },
+    "tiers": {
+      "new": "New",
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum"
+    },
+    "form": {
+      "mobile": "Mobile Number",
+      "name": "Full Name",
+      "email": "Email",
+      "tier": "Loyalty Tier",
+      "viewExisting": "View existing customer",
+      "uploadPhoto": "Upload photo",
+      "uploadingPhoto": "Uploading…",
+      "photoUploadFailed": "Couldn't upload the photo. Please try again.",
+      "errors": {
+        "mobileExists": "A customer with this mobile number already exists.",
+        "mobileRequired": "Enter the mobile number.",
+        "mobileInvalid": "Enter a valid mobile number",
+        "nameTooShort": "Enter at least 2 characters.",
+        "emailExists": "A customer with this email already exists.",
+        "invalid": "Please check this field."
+      }
+    },
+    "profile": {
+      "statistics": "Statistics",
+      "visits": "Visits",
+      "points": "Loyalty Points",
+      "totalSpend": "Total Spend",
+      "customerSince": "Customer Since",
+      "appointmentHistory": "Appointment History",
+      "noAppointments": "No appointments yet.",
+      "bookAppointment": "Book Appointment",
+      "newSale": "New Sale"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Today's business at a glance.",
+    "allBranches": "All branches",
+    "kpis": {
+      "revenueToday": "Revenue Today",
+      "revenueMonth": "Revenue This Month",
+      "appointmentsToday": "Appointments Today",
+      "activeMembers": "Active Members",
+      "walkIns": "Walk-ins",
+      "loyaltyRedeemed": "Loyalty Redeemed",
+      "revenueOverview": "Revenue Overview",
+      "topBranches": "Top Branches",
+      "salesByPayment": "Sales by Payment Method",
+      "topServices": "Top Services",
+      "lowStock": "Low Stock Alerts",
+      "recentAppointments": "Recent Appointments",
+      "todaysSummary": "Today's Summary",
+      "noData": "No data yet"
+    },
+    "todaysSummary": {
+      "walkIns": "Walk-ins",
+      "appointmentsCompleted": "Appointments completed",
+      "servicesDelivered": "Services delivered",
+      "productsSold": "Products sold",
+      "newCustomers": "New customers",
+      "loyaltyRedeemed": "Loyalty redeemed"
+    },
+    "myPanel": {
+      "title": "My Panel",
+      "checkedIn": "You are checked in",
+      "checkedOut": "Checked out",
+      "notCheckedIn": "You are not checked in yet",
+      "worked": "Worked",
+      "checkInAction": "Check In",
+      "checkOutAction": "Check Out",
+      "staleState": "That's already out of date — refresh and try again.",
+      "noStaffProfile": "Your account has no staff profile to track attendance against.",
+      "sessionsToggle": "Sessions ({count})",
+      "expandAria": "Show session log",
+      "collapseAria": "Hide session log",
+      "requestLeave": "Request leave"
+    }
+  },
+  "branches": {
+    "title": "Branches",
+    "addBranch": "Add Branch",
+    "backToList": "Back to branches",
+    "kpis": {
+      "revenue": "Revenue",
+      "total": "Total Branches",
+      "active": "Active Branches",
+      "inactive": "Inactive Branches",
+      "staff": "Total Staff"
+    },
+    "views": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
+    "card": {
+      "revenueToday": "Revenue today",
+      "appointments": "Appointments",
+      "chairs": "Chairs",
+      "utilization": "Utilization",
+      "rating": "Rating",
+      "noManager": "No manager",
+      "viewDetails": "View details"
+    },
+    "type": {
+      "corporate": "Corporate",
+      "franchise": "Franchise"
+    },
+    "list": {
+      "code": "Store ID",
+      "name": "Branch Name",
+      "type": "Type",
+      "city": "City",
+      "manager": "Manager",
+      "staff": "Staff",
+      "status": "Status"
+    },
+    "filters": {
+      "allTypes": "All types",
+      "allStatuses": "All statuses"
+    },
+    "audit": {
+      "created": "Created {date}",
+      "updated": "Last updated {date}"
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "form": {
+      "stepDetails": "Details",
+      "stepManagerHours": "Manager & Hours",
+      "stepCapacityServices": "Capacity & Services",
+      "stepReview": "Review & Confirm",
+      "stepProgress": "Step {current}/{total} · {title}",
+      "chairCount": "Number of Chairs",
+      "servicesOffered": "Services Offered",
+      "noActiveServices": "No active services yet",
+      "reviewIntro": "Please review the details before saving",
+      "basicInfo": "Basic Information",
+      "code": "Store ID",
+      "nameEn": "Branch Name (English)",
+      "nameAr": "Branch Name (Arabic)",
+      "type": "Ownership Type",
+      "status": "Branch Status",
+      "manager": "Branch Manager",
+      "noManager": "No manager assigned",
+      "contactInfo": "Contact Information",
+      "mobile": "Mobile Number",
+      "landphone": "Landphone Number",
+      "email": "Email Address",
+      "whatsapp": "WhatsApp Number",
+      "locationInfo": "Location Information",
+      "country": "Country",
+      "state": "State",
+      "city": "City",
+      "address": "Address",
+      "googleMapsUrl": "Google Maps Link",
+      "businessInfo": "Business Information",
+      "openingTime": "Opening Time",
+      "closingTime": "Closing Time",
+      "weeklyOffDays": "Weekly Off Days",
+      "franchiseInfo": "Franchise Information",
+      "existingOwner": "Existing franchise owner",
+      "newOwner": "New franchise owner",
+      "franchiseOwner": "Franchise Owner",
+      "ownerName": "Franchise Owner Name",
+      "companyName": "Company Name",
+      "commercialRegistrationNo": "Commercial Registration No.",
+      "taxNumber": "VAT / Tax Number",
+      "agreementStartDate": "Agreement Start Date",
+      "agreementExpiryDate": "Agreement Expiry Date",
+      "financialConfig": "Financial Configuration",
+      "currency": "Currency",
+      "tenantDefaultCurrency": "Company default",
+      "branchSettings": "Branch Settings",
+      "allowOnlineBooking": "Allow Online Booking",
+      "allowWalkIns": "Allow Walk-ins",
+      "enableLoyalty": "Enable Loyalty Program",
+      "enableProductSales": "Enable Product Sales",
+      "errors": {
+        "invalid": "Invalid or missing value",
+        "mobileInvalid": "Enter a valid mobile number"
+      }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Tenant-wide configuration. Sections unlock as their modules land.",
+    "comingSoon": "Soon",
+    "sections": {
+      "services": {
+        "title": "Services Configuration",
+        "description": "Categories, services, durations, prices and per-branch overrides"
+      },
+      "payroll": {
+        "title": "Payroll Components",
+        "description": "Allowance and deduction types, with default rates"
+      },
+      "leave": {
+        "title": "Leave Settings",
+        "description": "Leave types, balances policy and approval rules"
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Locale defaults, timezone, currency display and date formats"
+      },
+      "company": {
+        "title": "Company Information",
+        "description": "Tenant profile, logo and registration details used on invoices"
+      },
+      "roles": {
+        "title": "Roles & Permissions",
+        "description": "System roles and their permission sets"
+      },
+      "loyalty": {
+        "title": "Loyalty Settings",
+        "description": "Earn rules, tiers, expiry and redemption rates"
+      },
+      "appointments": {
+        "title": "Appointment Settings",
+        "description": "Slot granularity, buffers, reminders and no-show handling"
+      },
+      "taxes": {
+        "title": "Tax Profiles",
+        "description": "Named tax schemes and components applied per branch"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Channels, templates and per-event toggles"
+      }
+    },
+    "companyInfo": {
+      "title": "Company Info",
+      "subtitle": "Tenant profile shown on invoices and printed documents.",
+      "backToSettings": "Back to settings",
+      "logoSection": "Logo",
+      "uploadLogo": "Upload logo",
+      "uploadingLogo": "Uploading…",
+      "logoUploadFailed": "Couldn't upload the logo. Please try again.",
+      "saveChanges": "Save changes",
+      "generalSettingsLink": "Manage regional defaults (language, timezone, currency) in General Settings",
+      "fields": {
+        "name": "Company name",
+        "contactPhone": "Contact phone",
+        "contactEmail": "Contact email",
+        "address": "Address",
+        "taxNumber": "Tax / VAT number",
+        "commercialRegistrationNo": "Commercial registration no."
+      }
+    },
+    "generalSettings": {
+      "title": "General Settings",
+      "subtitle": "Tenant-wide regional defaults and display preferences.",
+      "backToSettings": "Back to settings",
+      "displaySection": "Display",
+      "useWesternNumeralsHint": "Keeps invoice and payslip amounts in Western digits even in Arabic — turning this off uses Arabic-Indic numerals instead.",
+      "currencyLockedHint": "Can't change once a branch exists — branches already inherited the prior default.",
+      "saveChanges": "Save changes",
+      "locales": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "fields": {
+        "defaultLocale": "Default language",
+        "timezone": "Timezone",
+        "defaultCurrency": "Default currency",
+        "weekStartsOn": "Week starts on",
+        "useWesternNumeralsInArabic": "Western numerals in Arabic"
+      },
+      "errors": {
+        "currencyLocked": "Default currency can't change once a branch exists."
+      }
+    },
+    "payrollComponents": {
+      "title": "Payroll Components",
+      "subtitle": "Configure the allowance and deduction types available in Add Staff.",
+      "add": "+ Add",
+      "empty": "No types yet — add one to get started.",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "defaultValue": "Default value",
+      "basis": "Basis",
+      "fixed": "Fixed",
+      "backToSettings": "Back to settings",
+      "saveChanges": "Save Changes",
+      "nameExists": "A payroll component with this name already exists.",
+      "allowance": {
+        "title": "Allowance types",
+        "hint": "Used in Staff › Salary & Commission and payroll additions"
+      },
+      "deduction": {
+        "title": "Deduction types",
+        "hint": "Statutory and recurring deductions; % is calculated on base salary"
+      }
+    },
+    "leaveSettings": {
+      "title": "Leave Settings",
+      "subtitle": "Configure the leave types used in leave requests, balances and payroll.",
+      "backToSettings": "Back to settings",
+      "leaveTypes": "Leave types",
+      "hint": "Used in leave requests, balances and payroll",
+      "add": "+ Add",
+      "addTitle": "Add leave type",
+      "editTitle": "Edit leave type",
+      "createAction": "Create leave type",
+      "saveChanges": "Save changes",
+      "showInactive": "Show inactive",
+      "activate": "Activate",
+      "confirmDeactivateTitle": "Deactivate leave type?",
+      "confirmActivateTitle": "Activate leave type?",
+      "confirmDeactivateBody": "\"{name}\" will no longer be available for new leave requests. You can reactivate it anytime.",
+      "confirmActivateBody": "\"{name}\" will become available for new leave requests again.",
+      "status": "Status",
+      "colName": "Name",
+      "colEncashable": "Encashable",
+      "colCarryForward": "Carry-forward",
+      "colSecondApproval": "2nd approval",
+      "maxDaysShort": "max {days}",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "paid": "Paid",
+      "unpaid": "Unpaid",
+      "paymentType": "Payment type",
+      "paymentTypeHint": "Whether this leave deducts from pay.",
+      "daysPerYear": "Days per year",
+      "daysPerYearHint": "Annual entitlement for this leave type.",
+      "daysPerYearSuffix": "days/yr",
+      "countMode": "Counting days",
+      "countModeHint": "Whether weekends/off-days count toward the requested duration.",
+      "countModeOptions": {
+        "all_days": "All calendar days",
+        "skip_weekly_off": "Skip weekly-off days"
+      },
+      "sectionBasic": "Basic info",
+      "sectionBalance": "Balance & carry-forward",
+      "sectionApproval": "Requests & approval",
+      "creditBalance": "Credit timing",
+      "creditBalanceHint": "When the yearly quota is added to the balance.",
+      "creditPolicyOptions": {
+        "beginning_of_year": "Beginning of the year",
+        "monthly": "Monthly",
+        "beginning_of_month": "Beginning of the month",
+        "end_of_month": "End of the month",
+        "anniversary": "Anniversary date"
+      },
+      "minimumNoticeDays": "Minimum notice (days)",
+      "minimumNoticeDaysHint": "How many days in advance a request must be submitted.",
+      "maxCarryForwardDays": "Max days to carry forward",
+      "allowCarryForward": "Allow carry-forward",
+      "allowCarryForwardHint": "Unused days roll into next year, up to the limit below.",
+      "allowHalfDay": "Allow half-day leave",
+      "allowHalfDayHint": "Staff can request half a day instead of a full day.",
+      "requireSupportingDocument": "Require supporting document",
+      "requireSupportingDocumentHint": "A file must be attached when requesting this leave.",
+      "allowNegativeBalance": "Allow negative balance",
+      "allowNegativeBalanceHint": "Staff can request leave beyond their remaining balance.",
+      "isEncashable": "Allow encashment",
+      "isEncashableHint": "Unused balance can be paid out via payroll (payout calculation not yet built).",
+      "requiresSecondApproval": "Require a second approval",
+      "requiresSecondApprovalHint": "A second approver must confirm after the first approves.",
+      "nameExists": "A leave type with this name already exists.",
+      "validation": {
+        "nameEnRequired": "Enter a name in English (max 100 characters).",
+        "nameArRequired": "Enter a name in Arabic (max 100 characters).",
+        "daysPerYearRange": "Enter a number between 0 and 365.",
+        "minimumNoticeDaysRange": "Enter a whole number between 0 and 365.",
+        "maxCarryForwardDaysRange": "Enter a whole number between 0 and 365, or enable carry-forward first.",
+        "generic": "This field needs a valid value."
+      }
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "subtitle": "Create and manage roles, and configure what each one can do.",
+      "backToSettings": "Back to settings",
+      "colName": "Role",
+      "colStaff": "Staff",
+      "newRole": "New Role",
+      "renameRole": "Edit Role",
+      "roleNameEn": "Role name (English)",
+      "roleNameAr": "Role name (Arabic)",
+      "selectAll": "Select all",
+      "clearAll": "Clear all",
+      "fullAccess": "Full access",
+      "systemRole": "System",
+      "customRole": "Custom",
+      "permissionSetup": "Permission setup",
+      "permissionsTitle": "Permissions — {name}",
+      "permissionsTitleFallback": "Permissions",
+      "superAdminReadOnly": "Super Admin has unrestricted access to every module and cannot be edited.",
+      "keysSelected": "{count} permission(s) selected",
+      "permissionsSaved": "Permissions saved",
+      "roleDeleted": "Role deleted",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "This cannot be undone. Staff currently holding this role must be reassigned first.",
+      "validation": {
+        "nameRequired": "Enter a role name"
+      },
+      "errors": {
+        "nameExists": "A role with this name already exists",
+        "roleProtected": "The Super Admin role cannot be changed",
+        "roleInUse": "Reassign the staff members holding this role before deleting it"
+      },
+      "modules": {
+        "dashboard": "Dashboard",
+        "branches": "Branches",
+        "customers": "Customers",
+        "appointments": "Appointments",
+        "pos": "POS / Checkout",
+        "invoices": "Invoices",
+        "services": "Services",
+        "staff": "Staff",
+        "payroll": "Payroll",
+        "attendance": "Attendance",
+        "leave": "Leave",
+        "inventory": "Inventory",
+        "procurement": "Procurement",
+        "loyalty": "Loyalty",
+        "finance": "Finance",
+        "users": "Users",
+        "roles": "Roles & Permissions",
+        "taxes": "Taxes",
+        "settings": "Settings",
+        "audit": "Audit"
+      }
+    }
+  },
+  "services": {
+    "title": "Services Configuration",
+    "addService": "Add Service",
+    "addCategory": "Category",
+    "backToSettings": "Back to settings",
+    "backToList": "Back to services",
+    "allCategories": "All categories",
+    "editCategory": "Edit category {name}",
+    "filters": {
+      "allStatuses": "All statuses"
+    },
+    "list": {
+      "name": "Service",
+      "category": "Category",
+      "duration": "Duration",
+      "price": "Price",
+      "overrides": "Overrides",
+      "status": "Status",
+      "minutes": "{minutes} min"
+    },
+    "form": {
+      "details": "Service Details",
+      "category": "Category",
+      "status": "Status",
+      "nameEn": "Service Name (English)",
+      "nameAr": "Service Name (Arabic)",
+      "timeAndPrice": "Time & Price",
+      "duration": "Duration (minutes)",
+      "buffer": "Cleanup Buffer (minutes)",
+      "price": "Price ({currency})",
+      "priceHint": "Stored as integer minor units — no rounding surprises.",
+      "branchAvailability": "Branch Availability & Price Overrides",
+      "branchAvailabilityHint": "Every branch offers the service at the base price unless you switch it off or set an override here.",
+      "availableAt": "Available at {branch}",
+      "overridePrice": "Override price",
+      "basePrice": "Base price",
+      "errors": {
+        "invalid": "Invalid or missing value",
+        "badOverride": "One of the override prices is not a valid amount"
+      }
+    },
+    "categoryDialog": {
+      "titleNew": "New category",
+      "titleEdit": "Edit category",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "bothNamesRequired": "Both names are required",
+      "nameExists": "A category with this name already exists"
+    }
+  },
+  "staff": {
+    "title": "Staff",
+    "subtitle": "Manage staff accounts, roles, and branch assignments",
+    "addUser": "Add Staff",
+    "backToList": "Back to Staff list",
+    "audit": {
+      "created": "Created {date}",
+      "updated": "Last updated {date}"
+    },
+    "list": {
+      "name": "Name",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role",
+      "branches": "Branches",
+      "allBranches": "All branches",
+      "branchCount": "{count} assigned",
+      "status": "Status",
+      "lastLogin": "Last Login"
+    },
+    "filters": {
+      "allRoles": "All roles",
+      "allBranches": "All branches",
+      "allStatuses": "All statuses"
+    },
+    "form": {
+      "stepBasicProfile": "Basic Profile",
+      "stepEmployment": "Employment",
+      "stepSalaryCommission": "Salary & Commission",
+      "stepSystemAccess": "System Access",
+      "stepProgress": "Step {current}/{total} · {title}",
+      "accountInfo": "Account Information",
+      "name": "Staff Name",
+      "username": "Username",
+      "email": "Email",
+      "language": "Preferred Language",
+      "mobile": "Mobile",
+      "gender": "Gender",
+      "genderMale": "Male",
+      "genderFemale": "Female",
+      "staffStatus": "Status",
+      "staffStatusActive": "Active",
+      "staffStatusOnLeave": "On Leave",
+      "staffStatusInactive": "Inactive",
+      "primaryBranch": "Primary Branch",
+      "primaryBranchLocked": "Primary Branch",
+      "employmentType": "Employment Type",
+      "employmentTypeFullTime": "Full-time",
+      "employmentTypePartTime": "Part-time",
+      "employmentTypeContract": "Contract",
+      "joiningDate": "Joining Date",
+      "reportingManager": "Reporting Manager",
+      "reportingManagerPlaceholder": "Search staff…",
+      "noReportingManager": "No reporting manager",
+      "baseSalary": "Base Salary ({currency})",
+      "commissionRate": "Commission Rate",
+      "commissionEnabledLabel": "Enabled",
+      "commissionRatePct": "Commission Rate (%)",
+      "allowances": "Allowances",
+      "deductions": "Statutory Deductions",
+      "addAllowance": "+ Allowances",
+      "addDeduction": "+ Deduction",
+      "noAllowances": "No allowances added yet.",
+      "noDeductions": "No deductions added yet.",
+      "selectComponent": "Select type",
+      "amount": "Amount",
+      "grossSalary": "Gross (Base Salary + Allowances)",
+      "totalDeductions": "Statutory deductions",
+      "netSalary": "Net monthly salary",
+      "access": "Role & Branch Access",
+      "role": "User Role",
+      "status": "Status",
+      "accountStatusHint": "Login access — separate from the staff status set in Basic Profile.",
+      "allBranches": "All-branches access",
+      "allBranchesHint": "Sees every branch without explicit assignments (Super Admin style)",
+      "branches": "Assigned Branches",
+      "noBranches": "No branches exist yet — create a branch first.",
+      "credentials": "Login Credentials",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "passwordHint": "At least 8 characters, with a letter and a digit.",
+      "addStaff": "Add Staff",
+      "errors": {
+        "invalid": "Invalid or missing value",
+        "nameRequired": "Enter the staff member's full name",
+        "usernameInvalid": "3–50 characters: letters, numbers, dot, underscore or dash only",
+        "mobileInvalid": "Enter a valid mobile number",
+        "emailInvalid": "Enter a valid email address",
+        "primaryBranchRequired": "Select a primary branch",
+        "roleRequired": "Select a user role",
+        "employmentTypeRequired": "Select an employment type",
+        "baseSalaryInvalid": "Enter a valid salary amount",
+        "passwordPolicy": "At least 8 characters, with a letter and a digit",
+        "passwordMismatch": "Passwords do not match",
+        "branchRequired": "Assign at least one branch, or grant all-branches access",
+        "usernameExists": "A user with this username already exists",
+        "emailExists": "A user with this email already exists",
+        "cannotModifySelf": "You cannot change your own status or role",
+        "reportingManagerSelf": "A staff member cannot report to themselves",
+        "commissionRateRequired": "Required when commission is enabled",
+        "fixHighlighted": "Please fix the highlighted fields before saving"
+      }
+    },
+    "resetPassword": {
+      "title": "Reset password — {name}",
+      "action": "Reset password",
+      "hint": "Set a new password for this user. All of their active sessions will be signed out.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "policyError": "At least 8 characters, with a letter and a digit",
+      "mismatchError": "Passwords do not match"
+    }
+  },
+  "attendance": {
+    "title": "Attendance",
+    "subtitleToday": "Live attendance for {date}",
+    "subtitleMonthly": "Monthly totals for {month}",
+    "scopeLabel": "View",
+    "scopeToday": "Today",
+    "scopeMonthly": "Monthly",
+    "allBranches": "All branches",
+    "status": {
+      "present": "Present",
+      "late": "Late",
+      "on_leave": "On Leave",
+      "absent": "Absent",
+      "weekly_off": "Weekly Off",
+      "pending": "Not yet",
+      "holiday": "Holiday"
+    },
+    "table": {
+      "staff": "Staff",
+      "status": "Status",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "hours": "Hours",
+      "viewLog": "View check-in/out log",
+      "present": "Present",
+      "late": "Late",
+      "leave": "Leave",
+      "absent": "Absent",
+      "totalHours": "Total Hours",
+      "rate": "Rate",
+      "viewMonthly": "View monthly breakdown"
+    },
+    "kpis": {
+      "presentToday": "Present Today",
+      "presentDays": "Present Days",
+      "late": "Late",
+      "lateArrivals": "Late Arrivals",
+      "onLeave": "On Leave",
+      "leaveDays": "Leave Days",
+      "absent": "Absent",
+      "absentDays": "Absent Days",
+      "rate": "Attendance Rate"
+    },
+    "sessionDialog": {
+      "title": "{name} · Check-in / out log",
+      "titleFallback": "Check-in / out log",
+      "sessions": "Sessions",
+      "firstIn": "First in",
+      "lastOut": "Last out",
+      "totalWorked": "Total worked",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "duration": "Duration",
+      "breakTime": "Break time",
+      "noSessions": "No sessions recorded for this day.",
+      "addSession": "Add session",
+      "removeSession": "Remove session",
+      "breakTotal": "Break time · {minutes}",
+      "validation": {
+        "checkInRequired": "Check-in time is required",
+        "checkoutBeforeCheckin": "Check-out must be after check-in",
+        "openMustBeLast": "Only the most recent session can be left open",
+        "overlap": "Sessions must not overlap with another session that day",
+        "futureCheckIn": "Check-in cannot be in the future",
+        "futureCheckOut": "Check-out cannot be in the future",
+        "tooManySessions": "Too many sessions for one day — remove some before saving",
+        "generic": "Please check this field"
+      }
+    },
+    "monthlyDetail": {
+      "title": "{name} · {month}",
+      "present": "Present",
+      "late": "Late",
+      "leave": "Leave",
+      "absent": "Absent",
+      "totalHours": "Total hours",
+      "rate": "Rate",
+      "date": "Date",
+      "day": "Day",
+      "status": "Status",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "hours": "Hours",
+      "viewLog": "View session log",
+      "statusLabel": {
+        "present": "Present",
+        "late": "Late",
+        "on_leave": "On Leave",
+        "absent": "Absent",
+        "weekly_off": "Weekly off",
+        "pending": "Not yet",
+        "holiday": "Holiday"
+      }
+    }
+  },
+  "leave": {
+    "title": "Leave",
+    "subtitle": "Review and approve staff leave requests",
+    "newRequest": "New Request",
+    "allBranches": "All branches",
+    "allTypes": "All types",
+    "kpis": {
+      "pending": "Pending",
+      "approvedThisMonth": "Approved this Month",
+      "onLeaveToday": "On Leave Today",
+      "rejected": "Rejected"
+    },
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "table": {
+      "staff": "Staff",
+      "type": "Type",
+      "period": "Period",
+      "days": "Days",
+      "reason": "Reason",
+      "status": "Status",
+      "requested": "Requested"
+    },
+    "status": {
+      "pending": "Pending",
+      "pendingSecondApproval": "Pending · 2nd approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "actions": {
+      "view": "View",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "insufficientBalance": "This staff member doesn't have enough leave balance to approve this request."
+    },
+    "toast": {
+      "requestSubmitted": "Leave request submitted",
+      "approved": "Leave request approved",
+      "rejected": "Leave request rejected",
+      "cancelled": "Leave cancelled",
+      "withdrawn": "Leave request withdrawn"
+    },
+    "requestDialog": {
+      "title": "Request Leave",
+      "onBehalfOf": "On behalf of",
+      "myself": "Myself",
+      "leaveType": "Leave type",
+      "selectType": "Select a leave type",
+      "daysRemaining": "{count} day(s) remaining",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "halfDay": "Half-day",
+      "halfDayPeriod": "Which half",
+      "firstHalf": "First half",
+      "secondHalf": "Second half",
+      "startHalfDay": "Start date is a half day",
+      "endHalfDay": "End date is a half day",
+      "reason": "Reason",
+      "attachment": "Supporting document",
+      "chooseFile": "Choose file",
+      "attachmentHint": "Upload a supporting document (e.g. a medical certificate).",
+      "attachmentUploadFailed": "The file could not be uploaded. Try again.",
+      "submit": "Submit Request",
+      "validation": {
+        "leaveTypeRequired": "Select a leave type",
+        "startDateRequired": "Start date is required",
+        "reasonRequired": "A reason is required",
+        "endDateBeforeStart": "End date must be on or after the start date",
+        "halfDayShapeInvalid": "Check the half-day selection for this date range",
+        "minimumNoticeNotMet": "This leave type requires more advance notice",
+        "halfDayNotAllowed": "This leave type does not allow half-day requests",
+        "supportingDocumentRequired": "A supporting document is required for this leave type",
+        "insufficientBalance": "Insufficient leave balance for this request",
+        "dateConflict": "A leave request already exists for one or more of these dates",
+        "generic": "Please check this field"
+      }
+    },
+    "approveDialog": {
+      "title": "Approve {name}'s request",
+      "body": "This marks the request approved and deducts the days from the staff member's leave balance.",
+      "confirm": "Approve Request"
+    },
+    "rejectDialog": {
+      "title": "Reject {name}'s request",
+      "reason": "Rejection reason",
+      "reasonRequired": "A rejection reason is required",
+      "alreadyResolved": "This request has already been resolved",
+      "confirm": "Reject Request"
+    },
+    "cancelDialog": {
+      "title": "Cancel {name}'s leave",
+      "body": "This reverses the leave balance deduction and clears the on-leave attendance marking for this period.",
+      "reason": "Cancellation reason",
+      "reasonRequired": "A cancellation reason is required",
+      "notApproved": "Only an approved request can be cancelled",
+      "confirm": "Cancel Leave"
+    },
+    "detailDialog": {
+      "title": "{name}'s leave request",
+      "titleFallback": "Leave request",
+      "type": "Type",
+      "period": "Period",
+      "firstHalf": "First half",
+      "secondHalf": "Second half",
+      "halfDayShort": "Half day",
+      "days": "Days",
+      "reason": "Reason",
+      "viewAttachment": "View attachment",
+      "historyTitle": "History",
+      "unknownActor": "System",
+      "history": {
+        "applied": "Applied by {name}",
+        "firstApproved": "First approved by {name}",
+        "approved": "Approved by {name}",
+        "rejected": "Rejected by {name}",
+        "cancelled": "Cancelled by {name}"
+      }
+    },
+    "withdrawDialog": {
+      "title": "Cancel this leave request?",
+      "body": "This withdraws your request before it's been decided. You can submit a new one anytime.",
+      "confirm": "Cancel Request"
+    },
+    "myLeave": {
+      "title": "My Leave",
+      "subtitle": "Your leave balance and your own requests",
+      "newRequest": "New Request",
+      "balanceTitle": "Leave balance",
+      "noBalances": "No leave types configured yet.",
+      "total": "Total",
+      "credited": "Credited",
+      "carriedForward": "Carried forward",
+      "used": "Used",
+      "remaining": "Remaining",
+      "appliedLeaves": "Applied leaves"
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "openLabel": "Open my profile",
+    "tabs": {
+      "profile": "Profile",
+      "salary": "Salary",
+      "leave": "Leave",
+      "attendance": "Attendance",
+      "notifications": "Notifications",
+      "contactHq": "Contact HQ"
+    },
+    "comingSoon": "{tab} isn't available yet."
+  },
+  "payroll": {
+    "title": "Payroll",
+    "subtitle": "Generate, review, and approve monthly payroll",
+    "branch": "Branch",
+    "month": "Payroll Month",
+    "generatePayroll": "Generate Payroll",
+    "generateConfirm": {
+      "title": "Generate Payroll",
+      "branch": "Branch",
+      "period": "Payroll Period",
+      "newEmployees": "New Employees",
+      "totalEmployees": "Total Employees",
+      "existingStatus": "Current Status Breakdown",
+      "confirm": "Confirm & Generate"
+    },
+    "notGenerated": {
+      "title": "No payroll run yet",
+      "body": "Select a branch and month, then generate payroll to get started."
+    },
+    "noEligibleStaff": {
+      "title": "No eligible employees",
+      "body": "This branch has no employees eligible for payroll in the selected month."
+    },
+    "paidDaysShort": "{paid}/{total} days",
+    "tabs": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "views": {
+      "label": "View",
+      "batch": "Batch",
+      "list": "List"
+    },
+    "columns": {
+      "staff": "Staff",
+      "base": "Base",
+      "allowances": "Allowances",
+      "deductions": "Deductions",
+      "net": "Net Pay",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "paid": "Paid"
+    },
+    "totals": "Totals",
+    "empty": "No payroll records in this tab.",
+    "batchEmpty": "No batches yet.",
+    "batchLabel": "Batch {no}",
+    "batchStaffCount": "{count} staff",
+    "actionsLabel": {
+      "viewPayslip": "View Payslip",
+      "approve": "Approve",
+      "reject": "Reject",
+      "markPaid": "Mark Paid",
+      "revert": "Revert to Pending",
+      "recompute": "Recompute"
+    },
+    "bulk": {
+      "selected": "{count} selected",
+      "selectedAll": "{count} selected (all matching)",
+      "selectAllMatching": "Select all {count} matching items",
+      "clearSelection": "Clear selection",
+      "recomputeSelected": "Recompute Selected",
+      "approveSelected": "Approve Selected",
+      "rejectSelected": "Reject Selected",
+      "markPaidSelected": "Mark Paid Selected",
+      "revertSelected": "Revert Selected"
+    },
+    "errors": {
+      "PAYROLL_ITEM_LOCKED": "This payroll item is already paid and can no longer be changed.",
+      "PAYROLL_INVALID_TRANSITION": "That action isn't valid for the item's current status.",
+      "PAYROLL_ITEM_NOT_PENDING": "Only pending items can be approved.",
+      "PAYROLL_NO_ELIGIBLE_STAFF": "This branch has no eligible employees for payroll.",
+      "GENERIC": "Something went wrong. Please try again."
+    },
+    "confirm": {
+      "approveTitle": "Approve payroll",
+      "approveBody": "This approves the selected payroll record(s) and moves them to the Approved tab.",
+      "rejectTitle": "Reject payroll",
+      "rejectBody": "This rejects the selected payroll record(s). They can be corrected and resubmitted later.",
+      "staffCount": "Staff",
+      "amount": "Total Amount",
+      "period": "Period",
+      "confirmApprove": "Approve",
+      "confirmReject": "Reject",
+      "reasonLabel": "Reason (optional)"
+    },
+    "slip": {
+      "title": "Payslip — {name}",
+      "doj": "Date of Joining",
+      "payDate": "Payment Date",
+      "notPaid": "Not yet paid",
+      "earnings": "Earnings",
+      "baseSalary": "Base Salary",
+      "paidDays": "Paid for {paid} of {total} days",
+      "allowances": "Total Allowances",
+      "allowanceBreakdown": "Allowance Breakdown",
+      "additions": "Additional Earnings",
+      "addAddition": "Add Earning",
+      "gross": "Gross Pay",
+      "deductions": "Deductions",
+      "statutory": "Statutory Deductions",
+      "statutoryBreakdown": "Statutory Breakdown",
+      "other": "Other Deduction",
+      "absenceDeduction": "Absence Deduction",
+      "absentDaysNote": "{days} absent day(s) deducted",
+      "leaveDeduction": "Leave Deduction",
+      "unpaidDaysNote": "{days} unpaid day(s) deducted",
+      "extraDeductions": "Extra Deductions",
+      "addDeduction": "Add Deduction",
+      "totalDeductions": "Total Deductions",
+      "netPay": "Net Pay",
+      "downloadPdf": "Download PDF",
+      "rejectionReason": "Rejection reason",
+      "labelPlaceholder": "e.g. Overtime",
+      "amountPlaceholder": "0.000"
+    }
+  }
+}

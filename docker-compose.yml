@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: hayryou_migrator
+      POSTGRES_PASSWORD: hayryou_dev
+      POSTGRES_DB: hayryou
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Creates the non-owner app role (RLS is bypassed for table owners,
+      # so the API must NEVER connect as hayryou_migrator).
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hayryou_migrator -d hayryou"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    # noeviction: BullMQ silently corrupts queues under eviction policies
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025" # web UI
+      - "1025:1025" # SMTP
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001" # console
+    environment:
+      MINIO_ROOT_USER: hayryou
+      MINIO_ROOT_PASSWORD: hayryou_dev
+      # MinIO doesn't implement the S3 PutBucketCors API (calling it returns
+      # NotImplemented) — CORS is a server-level setting here, not per-bucket.
+      # Dev-only wildcard; real S3 in prod uses a real bucket CORS policy instead.
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:

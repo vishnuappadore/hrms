@@ -1,0 +1,22 @@
+{
+  "name": "keystone-hr",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev dev:worker",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "db:migrate": "pnpm --filter @keystonehr/api db:migrate",
+    "db:seed": "pnpm --filter @keystonehr/api db:seed",
+    "check:rtl": "node scripts/check-rtl.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  }
+}

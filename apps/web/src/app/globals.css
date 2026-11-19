@@ -1,0 +1,254 @@
+@import "tailwindcss";
+
+/* Class-based dark variant — next-themes sets .dark on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #f3f7f5;
+  --color-brand-100: #dcebe3;
+  --color-brand-200: #b9d8c9;
+  --color-brand-300: #8cc0a9;
+  --color-brand-400: #4f9f7f;
+  --color-brand-500: #1f7a5c;
+  --color-brand-600: #17604a;
+  --color-brand-700: #114938;
+  --color-brand-800: #0d3a2d;
+  --color-brand-900: #0a2b22;
+}
+
+/* Semantic tokens — light. Neutrals carry a faint green cast for cohesion.
+   Every text/background pair here passes WCAG AA (validated). */
+:root {
+  --background: #f7f9f8;
+  --foreground: #16211c;
+  --card: #ffffff;
+  --card-foreground: #16211c;
+  --muted: #eef2f0;
+  --muted-foreground: #5f6f68;
+  --border: #e3e9e6;
+  --input: #cdd6d2;
+  --primary: #17604a;
+  --primary-hover: #114938;
+  --primary-foreground: #ffffff;
+  --primary-muted: #e6f1ec;
+  --destructive: #b91c1c;
+  --positive: #15803d; /* status: active (AA on light surfaces) */
+  --tint-positive-bg: rgba(21, 128, 61, 0.12);
+  --tint-positive-border: rgba(21, 128, 61, 0.35);
+  --ring: #1f7a5c;
+
+  /* Icon-well tints (table Actions column etc). Info/destructive are brand-
+     invariant semantic states (validated separately in :root/.dark); accent
+     tint follows the active brand's own --primary so it re-derives per brand. */
+  --info: #2f6fb8;
+  --tint-info-bg: rgba(59, 125, 201, 0.12);
+  --tint-info-border: rgba(59, 125, 201, 0.35);
+  --warning: #b45309; /* AA 5.0:1 on white card — Attendance "Late" badge */
+  --tint-warning-bg: rgba(180, 83, 9, 0.12);
+  --tint-warning-border: rgba(180, 83, 9, 0.35);
+  --tint-destructive-bg: rgba(185, 28, 28, 0.1);
+  --tint-destructive-border: rgba(185, 28, 28, 0.3);
+  --accent-soft: var(--primary); /* green has no separate soft/hairline accent */
+  --tint-accent-bg: rgba(23, 96, 74, 0.12); /* from --primary #17604a */
+  --tint-accent-border: rgba(23, 96, 74, 0.32);
+
+  /* Customer loyalty tier badges — brand-invariant, like warning/info above. */
+  --tier-platinum: #6d28d9; /* AA 6.3:1 on white card */
+  --tier-bronze: #9a3412; /* AA 7.4:1 on white card */
+
+  /* Deep-green sidebar — the brand anchor, same family in both modes */
+  --sidebar: #0d3a2d;
+  --sidebar-foreground: #d7e6de;
+  --sidebar-muted-foreground: #8fb3a4;
+  --sidebar-nav-foreground: #e8e6e1; /* default/inactive nav-item label */
+  --sidebar-section-foreground: #6f8478; /* dimmer than muted-foreground, for group eyebrows */
+  --sidebar-accent: #114938;
+  --sidebar-active: #1f7a5c;
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-border: #1c4a3a;
+
+  color-scheme: light;
+}
+
+/* Semantic tokens — dark. Primary flips to brand-400 with dark-green text:
+   mid-greens don't reach AA contrast against white text on dark surfaces. */
+.dark {
+  --background: #0c1210;
+  --foreground: #eef2f0;
+  --card: #131a17;
+  --card-foreground: #eef2f0;
+  --muted: #1c2521;
+  --muted-foreground: #94a89f;
+  --border: #22302a;
+  --input: #35443d;
+  --primary: #4f9f7f;
+  --primary-hover: #63b293;
+  --primary-foreground: #0a2b22;
+  --primary-muted: #142e24;
+  --destructive: #f87171;
+  --positive: #34c759; /* status: active (AA on dark surfaces) */
+  --tint-positive-bg: rgba(52, 199, 89, 0.14);
+  --tint-positive-border: rgba(52, 199, 89, 0.35);
+  --ring: #4f9f7f;
+
+  --info: #5b9be8;
+  --tint-info-bg: rgba(91, 155, 232, 0.14);
+  --tint-info-border: rgba(91, 155, 232, 0.35);
+  --warning: #fbbf24; /* AA 10.6:1 on dark card — Attendance "Late" badge */
+  --tint-warning-bg: rgba(251, 191, 36, 0.14);
+  --tint-warning-border: rgba(251, 191, 36, 0.35);
+  --tint-destructive-bg: rgba(255, 69, 58, 0.12);
+  --tint-destructive-border: rgba(255, 69, 58, 0.35);
+  --accent-soft: var(--primary);
+  --tint-accent-bg: rgba(79, 159, 127, 0.16); /* from --primary #4f9f7f */
+  --tint-accent-border: rgba(79, 159, 127, 0.4);
+
+  --tier-platinum: #c4b5fd; /* AA 9.1:1 on dark card */
+  --tier-bronze: #fdba74; /* AA 10.8:1 on dark card */
+
+  /* deeper than card so the zone still reads next to dark content */
+  --sidebar: #0b2b21;
+  --sidebar-foreground: #d7e6de;
+  --sidebar-muted-foreground: #8fb3a4;
+  --sidebar-nav-foreground: #e8e6e1;
+  --sidebar-section-foreground: #6f8478;
+  --sidebar-accent: #114938;
+  --sidebar-active: #1f7a5c;
+  --sidebar-active-foreground: #ffffff;
+  --sidebar-border: #17362b;
+
+  color-scheme: dark;
+}
+
+/* ── Gold brand — brass/amber accent from the locked design
+   (claude.ai design project de9b78df-90e7-4214-a853-218a92aeb534). Activated by
+   data-brand="gold" on <html> (brand-switcher.tsx + a no-flash inline
+   script; localStorage "hr-brand"). --primary doubles as a fill (bg-primary,
+   paired with the dark --primary-foreground) AND as a foreground (text-primary
+   on links/icons), so it must clear AA against the surface it sits on:
+   - LIGHT mode uses a bronze derivative (#7a6227 ≈ 5.8:1 on the white card) —
+     the bright #e7a81f is only ~2:1 as text-primary on white and fails AA.
+   - DARK mode keeps the bright accent (#e7a81f) — it clears AA on the near-
+     black surfaces.
+   --accent-soft (#c8a45a) is the secondary/hairline gold used for the
+   sidebar-active pill and accent borders. All pairs validated. */
+:root[data-brand="gold"] {
+  --background: #f8f7f3;
+  --foreground: #1b1710;
+  --card: #ffffff;
+  --card-foreground: #1b1710;
+  --muted: #f0ede5;
+  --muted-foreground: #6b6455;
+  --border: #e7e2d6;
+  --input: #d4cdbb;
+  --primary: #7a6227;
+  --primary-hover: #63501d;
+  --primary-foreground: #ffffff;
+  --primary-muted: #f5edd9;
+  --ring: #a5854a;
+
+  --accent-soft: #c8a45a;
+  --tint-accent-bg: rgba(231, 168, 31, 0.14);
+  --tint-accent-border: rgba(231, 168, 31, 0.38);
+
+  /* charcoal shell — the design keeps it dark in both modes */
+  --sidebar: #0b0d0f;
+  --sidebar-foreground: #e7d9b8;
+  --sidebar-muted-foreground: #9a9ea8;
+  --sidebar-nav-foreground: #e8e6e1;
+  --sidebar-section-foreground: #6f6a5f;
+  --sidebar-accent: #1a1d22;
+  --sidebar-active: #c8a45a;
+  --sidebar-active-foreground: #0a0c0e;
+  --sidebar-border: #1d2126;
+}
+
+.dark[data-brand="gold"] {
+  --background: #050607;
+  --foreground: #e8e6e1;
+  --card: #0f1215;
+  --card-foreground: #e8e6e1;
+  --muted: #14171b;
+  --muted-foreground: #8b8f98;
+  --border: #1c1e20;
+  --input: #1c1e20;
+  --primary: #e7a81f;
+  --primary-hover: #f2ba3d;
+  --primary-foreground: #141206;
+  --primary-muted: #241d10;
+  --ring: #e7a81f;
+
+  --accent-soft: #c8a45a;
+  --tint-accent-bg: rgba(231, 168, 31, 0.16);
+  --tint-accent-border: rgba(231, 168, 31, 0.4);
+
+  --sidebar: #0b0d0f;
+  --sidebar-foreground: #e7d9b8;
+  --sidebar-muted-foreground: #9a9ea8;
+  --sidebar-nav-foreground: #e8e6e1;
+  --sidebar-section-foreground: #6f6a5f;
+  --sidebar-accent: #1a1d22;
+  --sidebar-active: #c8a45a;
+  --sidebar-active-foreground: #0a0c0e;
+  --sidebar-border: #191c20;
+}
+
+/* Expose tokens as utilities (bg-background, text-foreground, border-border, …).
+   Must be `@theme inline` so utilities emit var(--…) and re-resolve under .dark. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-muted: var(--primary-muted);
+  --color-destructive: var(--destructive);
+  --color-positive: var(--positive);
+  --color-ring: var(--ring);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-tier-platinum: var(--tier-platinum);
+  --color-tier-bronze: var(--tier-bronze);
+  --color-accent-soft: var(--accent-soft);
+  --color-tint-info-bg: var(--tint-info-bg);
+  --color-tint-info-border: var(--tint-info-border);
+  --color-tint-warning-bg: var(--tint-warning-bg);
+  --color-tint-warning-border: var(--tint-warning-border);
+  --color-tint-positive-bg: var(--tint-positive-bg);
+  --color-tint-positive-border: var(--tint-positive-border);
+  --color-tint-accent-bg: var(--tint-accent-bg);
+  --color-tint-accent-border: var(--tint-accent-border);
+  --color-tint-destructive-bg: var(--tint-destructive-bg);
+  --color-tint-destructive-border: var(--tint-destructive-border);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-nav-foreground: var(--sidebar-nav-foreground);
+  --color-sidebar-section-foreground: var(--sidebar-section-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+/* Self-hosted webfonts (next/font/local sets --font-lexend / --font-cairo on <html>).
+   Arabic UI leads with Cairo and falls back to Lexend for Latin glyphs. */
+:root {
+  --font-sans:
+    var(--font-lexend), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+:root[dir="rtl"] {
+  --font-sans:
+    var(--font-cairo), var(--font-lexend), "Segoe UI", Tahoma, ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}

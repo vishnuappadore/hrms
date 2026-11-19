@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hayryou_migrator
+          POSTGRES_PASSWORD: hayryou_dev
+          POSTGRES_DB: hayryou
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hayryou_migrator -d hayryou"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://hayryou_app:hayryou_dev@localhost:5432/hayryou
+      DIRECT_DATABASE_URL: postgresql://hayryou_migrator:hayryou_dev@localhost:5432/hayryou
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret-16chars
+      JWT_REFRESH_SECRET: ci-refresh-secret-16chars
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # @prisma/client is not auto-generated on install in this pnpm workspace,
+      # so the generated types (Prisma.*WhereInput, model payloads) are missing
+      # until we run it explicitly — required before lint/typecheck/build/tests.
+      - name: Generate Prisma client
+        run: pnpm --filter @hayryou/api db:generate
+
+      - name: Create non-owner app role (RLS applies to it)
+        run: |
+          PGPASSWORD=hayryou_dev psql -h localhost -U hayryou_migrator -d hayryou \
+            -f scripts/init-db.sql
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Integration tests (RLS isolation suite)
+        run: pnpm test:integration
+
+      - name: Build
+        run: pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  terraform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Validate staging
+        working-directory: infra/envs/staging
+        run: terraform init -backend=false && terraform validate
+      - name: Validate prod
+        working-directory: infra/envs/prod
+        run: terraform init -backend=false && terraform validate
