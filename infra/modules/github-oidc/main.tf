@@ -26,10 +26,27 @@ data "aws_iam_policy_document" "github_assume_role" {
       values   = ["sts.amazonaws.com"]
     }
     condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:repository"
+      values   = [var.github_repo]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:ref"
+      # Covers pushes to main and manual workflow_dispatch runs against main.
+      values = ["refs/heads/main"]
+    }
+    condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      # Covers pushes to main and manual workflow_dispatch runs against main.
-      values = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      # AWS requires every OIDC trust policy to condition on `sub` (or `job_workflow_ref`)
+      # specifically, and rejects one that isn't scoped at all — so this can't simply be
+      # dropped. It's deliberately loose (not an exact repo:owner/repo:ref:... match): GitHub
+      # appends numeric owner/repo IDs to `sub` (repo:owner@id/repo@id:ref:...) whenever the
+      # account or repo has ever been renamed, so an exact plain-name pattern silently never
+      # matches. The real restriction is the `repository`/`ref` conditions above (ANDed with
+      # this one) — both ID-free, stable claims GitHub documents as the renaming-safe choice.
+      values = ["repo:*:ref:refs/heads/main"]
     }
   }
 }
