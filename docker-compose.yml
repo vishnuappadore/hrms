@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: keystonehr
       POSTGRES_PASSWORD: keystonehr_dev
@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     # noeviction: BullMQ silently corrupts queues under eviction policies
     command: ["redis-server", "--maxmemory-policy", "noeviction"]
     healthcheck:
@@ -30,14 +30,14 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "8025:8025" # web UI
-      - "1025:1025" # SMTP
+      - "8026:8025" # web UI
+      - "1026:1025" # SMTP
 
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"
-      - "9001:9001" # console
+      - "9010:9000"
+      - "9011:9001" # console
     environment:
       MINIO_ROOT_USER: keystonehr
       MINIO_ROOT_PASSWORD: keystonehr_dev
