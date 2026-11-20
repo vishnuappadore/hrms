@@ -18,7 +18,9 @@ const EnvSchema = z.object({
 
   // S3-compatible object storage (MinIO in dev; swapping to real AWS S3 later is purely an
   // env change — same client, same presigned-URL calls, docs/ARCHITECTURE.md's stated pattern).
-  S3_ENDPOINT: z.string().min(1),
+  // Optional: production deliberately leaves it unset so the AWS SDK resolves the real S3
+  // endpoint from S3_REGION instead (see infra/deploy.sh); only MinIO in dev sets it.
+  S3_ENDPOINT: z.string().min(1).optional(),
   S3_REGION: z.string().min(1),
   S3_ACCESS_KEY: z.string().min(1),
   S3_SECRET_KEY: z.string().min(1),
