@@ -16,10 +16,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Configure AWS credentials (OIDC, no stored keys)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -28,19 +28,37 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      # The app server is a t4g.small (arm64/Graviton) instance, but this runner is amd64 —
+      # cross-build via QEMU so the pushed images actually have an arm64 manifest.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push api image
-        run: |
-          docker build -f apps/api/Dockerfile -t "${{ steps.ecr.outputs.registry }}/keystonehr-api:${{ github.sha }}" \
-            -t "${{ steps.ecr.outputs.registry }}/keystonehr-api:latest" .
-          docker push "${{ steps.ecr.outputs.registry }}/keystonehr-api:${{ github.sha }}"
-          docker push "${{ steps.ecr.outputs.registry }}/keystonehr-api:latest"
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/keystonehr-api:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/keystonehr-api:latest
 
       - name: Build and push web image
-        run: |
-          docker build -f apps/web/Dockerfile -t "${{ steps.ecr.outputs.registry }}/keystonehr-web:${{ github.sha }}" \
-            -t "${{ steps.ecr.outputs.registry }}/keystonehr-web:latest" .
-          docker push "${{ steps.ecr.outputs.registry }}/keystonehr-web:${{ github.sha }}"
-          docker push "${{ steps.ecr.outputs.registry }}/keystonehr-web:latest"
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/keystonehr-web:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/keystonehr-web:latest
 
       - name: Upload deploy manifests to S3
         run: |
